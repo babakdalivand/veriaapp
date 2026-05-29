@@ -10,7 +10,10 @@ async function antiLinkMiddleware(ctx, next) {
   if (!ctx.message?.text && !ctx.message?.caption) return next();
 
   const settings = await Settings.getSettings().catch(() => null);
-  if (!settings || !settings.antiLinkEnabled) return next();
+  if (!settings || !settings.antiLinkEnabled) {
+    console.log('[ANTILINK] disabled or no settings');
+    return next();
+  }
 
   if (isOwner(ctx) || await isAdmin(ctx)) return next();
 
@@ -19,14 +22,18 @@ async function antiLinkMiddleware(ctx, next) {
   URL_REGEX.lastIndex = 0;
   TG_INVITE_REGEX.lastIndex = 0;
 
+  console.log('[ANTILINK] text:', text.slice(0, 60), 'hasLink:', hasLink);
+
   if (!hasLink) return next();
 
-  await ctx.deleteMessage().catch(() => {});
+  console.log('[ANTILINK] deleting message', ctx.message.message_id);
+  const delResult = await ctx.deleteMessage().catch(e => e.message);
 
   const userId = ctx.from.id;
   const groupId = ctx.chat.id;
+  console.log('[ANTILINK] delete result:', delResult);
   const botId = ctx.botInfo?.id ?? 0;
-  const result = await warnUser(ctx, userId, groupId, 'ارسال لینک', botId).catch(() => null);
+  const result = await warnUser(ctx, userId, groupId, 'ارسال لینک', botId).catch(e => { console.log('[ANTILINK] warnUser error:', e.message); return null; });
 
   if (result) {
     const name = ctx.from.first_name || 'کاربر';
