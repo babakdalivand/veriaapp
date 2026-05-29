@@ -24,7 +24,10 @@ async function startServer() {
     const webhookPath = `/webhook/${WEBHOOK_SECRET}`;
 
     await bot.telegram.setWebhook(`${WEBHOOK_DOMAIN}${webhookPath}`);
-    app.post(webhookPath, (req, res) => bot.handleUpdate(req.body, res));
+    app.post(webhookPath, (req, res) => {
+      res.sendStatus(200);
+      bot.handleUpdate(req.body).catch(e => console.error('handleUpdate error:', e.message));
+    });
 
     console.log(`Webhook set: ${WEBHOOK_DOMAIN}${webhookPath}`);
   } else {
