@@ -8,6 +8,7 @@ const {
   addAdminCommand,
   removeAdminCommand,
   settingsHandler,
+  miniAppHandler,
   comingSoonHandler,
 } = require('./handlers/menu');
 const {
@@ -42,7 +43,7 @@ function createBot() {
   bot.hears('⚙️ تنظیمات', settingsHandler);
   bot.hears('🛡️ مدیریت گروه', groupMenuHandler);
   bot.hears('🎬 مدیریت محتوا', comingSoonHandler);
-  bot.hears('📱 Mini App', comingSoonHandler);
+  bot.hears('📱 Mini App', miniAppHandler);
   bot.hears('📺 دانلود یوتیوب', comingSoonHandler);
   bot.hears('📰 آخرین اخبار', comingSoonHandler);
   bot.hears('💬 نقل‌قول روز', comingSoonHandler);

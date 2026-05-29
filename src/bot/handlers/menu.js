@@ -92,6 +92,19 @@ async function settingsHandler(ctx) {
   );
 }
 
+async function miniAppHandler(ctx) {
+  const { Markup } = require('telegraf');
+  return ctx.reply(
+    '📱 *Mini App*\n\nبرای باز کردن اپ روی دکمه زیر بزن:',
+    {
+      parse_mode: 'Markdown',
+      ...Markup.inlineKeyboard([
+        [Markup.button.webApp('🚀 باز کردن Veriaapp', 'https://veriaapp.persianatheists.com/miniapp/')]
+      ])
+    }
+  );
+}
+
 async function comingSoonHandler(ctx) {
   return ctx.reply(`🔧 این بخش در حال توسعه است...`);
 }
@@ -102,5 +115,6 @@ module.exports = {
   addAdminCommand,
   removeAdminCommand,
   settingsHandler,
+  miniAppHandler,
   comingSoonHandler,
 };

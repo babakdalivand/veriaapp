@@ -1,7 +1,9 @@
 const express = require('express');
+const path = require('path');
 const { createBot } = require('../bot');
 const { connectDB } = require('../database/connection');
 const { PORT, USE_WEBHOOK, WEBHOOK_DOMAIN, WEBHOOK_SECRET, NODE_ENV } = require('../config');
+const apiRouter = require('./api');
 
 process.on('unhandledRejection', (reason) => {
   console.error('Unhandled rejection:', reason);
@@ -19,6 +21,8 @@ async function startServer() {
   app.use(express.json());
 
   app.get('/', (req, res) => res.send('veriaapp is running 🎙️'));
+  app.use('/api', apiRouter);
+  app.use('/miniapp', express.static(path.join(__dirname, '../miniapp')));
 
   if (USE_WEBHOOK) {
     const webhookPath = `/webhook/${WEBHOOK_SECRET}`;

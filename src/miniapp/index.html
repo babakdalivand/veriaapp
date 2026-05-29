@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Veriaapp</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      background: var(--tg-theme-bg-color, #1a1a2e);
+      color: var(--tg-theme-text-color, #eaeaea);
+      min-height: 100vh;
+      direction: rtl;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 24px 20px;
+      text-align: center;
+      position: relative;
+    }
+
+    .avatar {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      border: 3px solid rgba(255,255,255,0.5);
+      margin: 0 auto 12px;
+      display: block;
+      background: rgba(255,255,255,0.2);
+      object-fit: cover;
+    }
+
+    .avatar-placeholder {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      border: 3px solid rgba(255,255,255,0.5);
+      margin: 0 auto 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      background: rgba(255,255,255,0.2);
+    }
+
+    .username {
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+
+    .user-id {
+      font-size: 13px;
+      color: rgba(255,255,255,0.7);
+    }
+
+    .role-badge {
+      display: inline-block;
+      padding: 3px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: 8px;
+    }
+
+    .role-owner { background: #ffd700; color: #333; }
+    .role-admin { background: #00b4d8; color: #fff; }
+    .role-vip { background: #9b59b6; color: #fff; }
+    .role-user { background: rgba(255,255,255,0.2); color: #fff; }
+
+    .content {
+      padding: 20px;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    .section-title {
+      font-size: 14px;
+      color: var(--tg-theme-hint-color, #888);
+      margin-bottom: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .card {
+      background: var(--tg-theme-secondary-bg-color, #16213e);
+      border-radius: 16px;
+      padding: 18px 14px;
+      text-align: center;
+      cursor: pointer;
+      transition: transform 0.15s, opacity 0.15s;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .card:active { transform: scale(0.96); opacity: 0.8; }
+
+    .card-icon { font-size: 28px; margin-bottom: 8px; }
+    .card-label { font-size: 13px; font-weight: 600; color: var(--tg-theme-text-color, #eaeaea); }
+    .card-sub { font-size: 11px; color: var(--tg-theme-hint-color, #888); margin-top: 3px; }
+
+    .info-box {
+      background: var(--tg-theme-secondary-bg-color, #16213e);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 16px;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      font-size: 14px;
+    }
+    .info-row:last-child { border-bottom: none; }
+    .info-label { color: var(--tg-theme-hint-color, #888); }
+    .info-value { font-weight: 600; }
+
+    .btn {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      font-family: inherit;
+      direction: rtl;
+    }
+    .btn:active { opacity: 0.8; }
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--tg-theme-hint-color, #888);
+    }
+    .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid rgba(255,255,255,0.1);
+      border-top-color: #667eea;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<div id="loading" class="loading">
+  <div class="spinner"></div>
+  <div>در حال بارگذاری...</div>
+</div>
+
+<div id="app" style="display:none">
+  <div class="header">
+    <div class="avatar-placeholder" id="avatarEl">👤</div>
+    <div class="username" id="nameEl">کاربر</div>
+    <div class="user-id" id="userIdEl"></div>
+    <div class="role-badge role-user" id="roleBadge">کاربر</div>
+  </div>
+
+  <div class="content">
+    <div class="section-title">امکانات</div>
+    <div class="cards">
+      <div class="card" onclick="openSection('youtube')">
+        <div class="card-icon">📺</div>
+        <div class="card-label">دانلود یوتیوب</div>
+        <div class="card-sub">به زودی</div>
+      </div>
+      <div class="card" onclick="openSection('news')">
+        <div class="card-icon">📰</div>
+        <div class="card-label">اخبار</div>
+        <div class="card-sub">به زودی</div>
+      </div>
+      <div class="card" onclick="openSection('quotes')">
+        <div class="card-icon">💬</div>
+        <div class="card-label">نقل‌قول</div>
+        <div class="card-sub">به زودی</div>
+      </div>
+      <div class="card" onclick="openSection('about')">
+        <div class="card-icon">ℹ️</div>
+        <div class="card-label">درباره ما</div>
+        <div class="card-sub">Veriaapp</div>
+      </div>
+    </div>
+
+    <div class="section-title">اطلاعات حساب</div>
+    <div class="info-box" id="infoBox">
+      <div class="info-row">
+        <span class="info-label">آیدی تلگرام</span>
+        <span class="info-value" id="infoId">—</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">نام کاربری</span>
+        <span class="info-value" id="infoUsername">—</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">نقش</span>
+        <span class="info-value" id="infoRole">—</span>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" onclick="closeApp()">بازگشت به بات</button>
+  </div>
+</div>
+
+<script>
+  const tg = window.Telegram.WebApp;
+  tg.ready();
+  tg.expand();
+  tg.setHeaderColor('#667eea');
+
+  const roleMap = {
+    owner: { label: 'مالک', cls: 'role-owner' },
+    admin: { label: 'ادمین', cls: 'role-admin' },
+    vip: { label: 'VIP', cls: 'role-vip' },
+    user: { label: 'کاربر', cls: 'role-user' },
+  };
+
+  async function init() {
+    const user = tg.initDataUnsafe?.user;
+    if (!user) {
+      document.getElementById('loading').innerHTML = '<p style="color:#e74c3c">خطا: باید از داخل تلگرام باز شود.</p>';
+      return;
+    }
+
+    // Show user info
+    document.getElementById('nameEl').textContent = user.first_name + (user.last_name ? ' ' + user.last_name : '');
+    document.getElementById('userIdEl').textContent = 'ID: ' + user.id;
+    document.getElementById('infoId').textContent = user.id;
+    document.getElementById('infoUsername').textContent = user.username ? '@' + user.username : '—';
+
+    if (user.photo_url) {
+      document.getElementById('avatarEl').outerHTML = `<img class="avatar" src="${user.photo_url}" id="avatarEl">`;
+    }
+
+    // Fetch user role from API
+    try {
+      const res = await fetch('/api/user?id=' + user.id + '&initData=' + encodeURIComponent(tg.initData));
+      if (res.ok) {
+        const data = await res.json();
+        const role = data.role || 'user';
+        const r = roleMap[role] || roleMap.user;
+        const badge = document.getElementById('roleBadge');
+        badge.textContent = r.label;
+        badge.className = 'role-badge ' + r.cls;
+        document.getElementById('infoRole').textContent = r.label;
+      }
+    } catch {}
+
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+  }
+
+  function openSection(section) {
+    tg.showAlert('این بخش به زودی اضافه می‌شه! 🚀');
+  }
+
+  function closeApp() {
+    tg.close();
+  }
+
+  init();
+</script>
+</body>
+</html>
