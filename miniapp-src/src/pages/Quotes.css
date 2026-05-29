@@ -1,0 +1,34 @@
+.qt-hero {
+  background:linear-gradient(160deg,#0e0a1a 0%,#07070f 100%);
+  padding:36px 20px 28px; text-align:center; position:relative; overflow:hidden;
+}
+.qt-orb {
+  position:absolute; width:260px; height:260px; border-radius:50%;
+  top:-100px; left:50%; transform:translateX(-50%);
+  background:radial-gradient(circle,rgba(139,92,246,.12) 0%,transparent 70%);
+  pointer-events:none;
+}
+.qt-icon { font-size:3rem; color:#8b5cf6; text-shadow:0 0 20px rgba(139,92,246,.4); margin-bottom:12px; line-height:1; }
+.qt-title { font-size:1.2rem; font-weight:700; margin-bottom:7px; }
+.qt-sub { font-size:.8rem; color:#6666a0; }
+
+.qt-card { margin:0 16px; padding:22px 20px; position:relative; }
+.qt-quote-mark {
+  font-size:2.2rem; color:#3d8bff; opacity:.4;
+  position:absolute; top:14px; right:18px;
+  line-height:1; pointer-events:none;
+}
+.qt-text {
+  font-size:.95rem; line-height:1.85;
+  color:#d8d8f0; font-style:italic;
+  margin-bottom:16px; padding-right:8px;
+  border-right:2px solid rgba(61,139,255,.4);
+}
+.qt-author { font-size:.8rem; font-weight:600; color:#3d8bff; text-align:left; }
+
+.qt-about { margin:0 16px; padding:4px 0; }
+.qt-about-row { display:flex; gap:13px; align-items:flex-start; padding:14px 16px; }
+.qt-about-icon { font-size:1.3rem; flex-shrink:0; margin-top:1px; }
+.qt-about-title { font-size:.83rem; font-weight:600; color:#ccccee; margin-bottom:3px; }
+.qt-about-sub { font-size:.72rem; color:#6666a0; line-height:1.5; }
+.qt-about-divider { height:1px; background:rgba(255,255,255,.05); margin:0 16px; }
