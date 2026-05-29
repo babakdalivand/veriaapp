@@ -112,6 +112,19 @@ router.get('/user', async (req, res) => {
   }
 });
 
+const DEFAULT_TWITTER_ACCOUNTS = ['IranIntl_Fa', 'bbcpersian', 'AlinejadMasih'];
+
+// GET /api/twitter/accounts  (public — returns configured accounts list)
+router.get('/twitter/accounts', async (req, res) => {
+  try {
+    const s = await Settings.getSettings();
+    const accounts = s.twitterAccounts
+      ? s.twitterAccounts.split(',').map(a => a.trim()).filter(Boolean)
+      : DEFAULT_TWITTER_ACCOUNTS;
+    res.json({ accounts });
+  } catch { res.json({ accounts: DEFAULT_TWITTER_ACCOUNTS }); }
+});
+
 // GET /api/tweets?username=IranIntl_Fa  (public, Nitter RSS)
 const rssParser = new Parser({ timeout: 8000, headers: { 'User-Agent': 'Mozilla/5.0' } });
 const NITTER = ['https://nitter.privacydev.net', 'https://nitter.poast.org', 'https://nitter.nl'];
@@ -268,6 +281,7 @@ router.get('/admin/settings', requireAdmin, async (req, res) => {
       antiLinkEnabled: s.antiLinkEnabled,
       warnLimit: s.warnLimit,
       keywords: s.keywords || '',
+      twitterAccounts: s.twitterAccounts || '',
     });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -278,7 +292,7 @@ router.put('/admin/settings', express.json(), requireAdmin, async (req, res) => 
   try {
     const s = await Settings.getSettings();
     const allowed = ['botEnabled','welcomeMessage','mainChannelId','mainGroupId','groupIds',
-                     'captchaEnabled','antiSpamEnabled','antiLinkEnabled','warnLimit','keywords'];
+                     'captchaEnabled','antiSpamEnabled','antiLinkEnabled','warnLimit','keywords','twitterAccounts'];
     for (const key of allowed) {
       if (req.body[key] !== undefined) s[key] = req.body[key];
     }

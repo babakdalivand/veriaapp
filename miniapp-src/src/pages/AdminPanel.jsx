@@ -49,6 +49,8 @@ function SettingsTab({ qs, initData }) {
   const [msg, setMsg] = useState('')
   const [groupInput, setGroupInput] = useState('')
   const [groupSaving, setGroupSaving] = useState(false)
+  const [twInput, setTwInput] = useState('')
+  const [twSaving, setTwSaving] = useState(false)
 
   useEffect(() => {
     fetch(`/api/admin/settings${qs}`).then(r => r.json()).then(setS).catch(() => {})
@@ -109,6 +111,33 @@ function SettingsTab({ qs, initData }) {
   if (!s) return <div className="ap-empty">در حال بارگذاری...</div>
 
   const groups = parseGroups(s.groupIds)
+  const twAccounts = parseGroups(s.twitterAccounts)
+
+  async function addTwAccount() {
+    const val = twInput.trim().replace('@', '')
+    if (!val) return
+    if (twAccounts.includes(val)) { setTwInput(''); return }
+    const updated = [...twAccounts, val]
+    setTwSaving(true)
+    await fetch(`/api/admin/settings${qs}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ twitterAccounts: updated.join(','), initData }),
+    })
+    setS(p => ({ ...p, twitterAccounts: updated.join(',') }))
+    setTwInput('')
+    setTwSaving(false)
+  }
+
+  async function removeTwAccount(acc) {
+    const updated = twAccounts.filter(a => a !== acc)
+    await fetch(`/api/admin/settings${qs}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ twitterAccounts: updated.join(','), initData }),
+    })
+    setS(p => ({ ...p, twitterAccounts: updated.join(',') }))
+  }
 
   return (
     <div>
@@ -173,6 +202,34 @@ function SettingsTab({ qs, initData }) {
             onChange={e => setGroupInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && addGroup()} />
           <button className="ap-kw-btn" onClick={addGroup} disabled={groupSaving || !groupInput.trim()}>
+            + افزودن
+          </button>
+        </div>
+      </div>
+
+      <p className="sec-title">🐦 اکانت‌های توییتر ({twAccounts.length || 'پیش‌فرض'})</p>
+      <div className="card">
+        <div style={{ padding: '8px 16px 4px' }}>
+          <div className="ap-setting-sub" style={{ marginBottom: 10 }}>اکانت‌هایی که در تب توییتر Mini App نمایش داده می‌شوند</div>
+          {twAccounts.length > 0 ? (
+            <div className="ap-kw-list" style={{ padding: 0, marginBottom: 10 }}>
+              {twAccounts.map(acc => (
+                <div key={acc} className="ap-kw-chip">
+                  <span style={{ direction: 'ltr', fontSize: '.75rem' }}>@{acc}</span>
+                  <button className="ap-kw-del" onClick={() => removeTwAccount(acc)}>✕</button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ color: '#44445a', fontSize: '.78rem', marginBottom: 10 }}>از اکانت‌های پیش‌فرض استفاده می‌شود</div>
+          )}
+        </div>
+        <div className="ap-kw-add-row" style={{ padding: '0 16px 12px' }}>
+          <input className="ap-kw-input" value={twInput} dir="ltr"
+            placeholder="@username یا username"
+            onChange={e => setTwInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && addTwAccount()} />
+          <button className="ap-kw-btn" onClick={addTwAccount} disabled={twSaving || !twInput.trim()}>
             + افزودن
           </button>
         </div>

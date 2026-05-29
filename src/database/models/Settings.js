@@ -12,6 +12,7 @@ const Settings = sequelize.define('Settings', {
   antiLinkEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
   warnLimit: { type: DataTypes.INTEGER, defaultValue: 3 },
   keywords: { type: DataTypes.TEXT, allowNull: true },
+  twitterAccounts: { type: DataTypes.TEXT, allowNull: true },
 });
 
 // helper to get or create the single settings row

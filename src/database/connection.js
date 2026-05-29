@@ -43,6 +43,7 @@ async function connectDB() {
     await sequelize.query(`ALTER TABLE Settings MODIFY COLUMN mainChannelId VARCHAR(255) NULL`).catch(() => {});
     await sequelize.query(`ALTER TABLE Settings MODIFY COLUMN mainGroupId VARCHAR(255) NULL`).catch(() => {});
     await sequelize.query(`ALTER TABLE Settings ADD COLUMN IF NOT EXISTS groupIds TEXT NULL`).catch(() => {});
+    await sequelize.query(`ALTER TABLE Settings ADD COLUMN IF NOT EXISTS twitterAccounts TEXT NULL`).catch(() => {});
     // Seed quotes table if empty
     const count = await Quote.count().catch(() => -1);
     if (count === 0) {

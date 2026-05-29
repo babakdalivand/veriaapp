@@ -1,20 +1,26 @@
 const { Markup } = require('telegraf');
 const Parser = require('rss-parser');
+const Settings = require('../../database/models/Settings');
 const parser = new Parser({ timeout: 10000, headers: { 'User-Agent': 'Mozilla/5.0' } });
 
-// Nitter instances (fallback list)
 const NITTER_INSTANCES = [
   'https://nitter.privacydev.net',
   'https://nitter.poast.org',
   'https://nitter.nl',
 ];
 
-// Default accounts to follow - customizable
-const DEFAULT_ACCOUNTS = [
-  'IranIntl_Fa',
-  'bbcpersian',
-  'AlinejadMasih',
-];
+const DEFAULT_ACCOUNTS = ['IranIntl_Fa', 'bbcpersian', 'AlinejadMasih'];
+
+async function getAccounts() {
+  try {
+    const s = await Settings.getSettings();
+    if (s.twitterAccounts) {
+      const list = s.twitterAccounts.split(',').map(a => a.trim()).filter(Boolean);
+      if (list.length) return list;
+    }
+  } catch {}
+  return DEFAULT_ACCOUNTS;
+}
 
 async function fetchTweets(username) {
   for (const instance of NITTER_INSTANCES) {
@@ -34,7 +40,8 @@ async function fetchTweets(username) {
 }
 
 async function twitterMenuHandler(ctx) {
-  const buttons = DEFAULT_ACCOUNTS.map(acc =>
+  const accounts = await getAccounts();
+  const buttons = accounts.map(acc =>
     [Markup.button.callback(`🐦 @${acc}`, `tw:${acc}`)]
   );
   buttons.push([Markup.button.callback('✏️ اکانت دلخواه', 'tw:custom')]);
