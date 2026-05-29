@@ -17,7 +17,9 @@ async function startServer() {
 
   const bot = createBot();
   const botState = require('../bot/botState');
+  const { startScheduler } = require('../bot/handlers/scheduler');
   bot.telegram.getMe().then(info => { botState.username = info.username; }).catch(() => {});
+  startScheduler(bot);
 
   const app = express();
 

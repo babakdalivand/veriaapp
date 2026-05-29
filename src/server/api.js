@@ -1,11 +1,14 @@
-const { Router } = require('express');
+const express = require('express');
+const { Router } = express;
 const crypto = require('crypto');
 const { Op } = require('sequelize');
 const User = require('../database/models/User');
 const Admin = require('../database/models/Admin');
 const Warn = require('../database/models/Warn');
+const Quote = require('../database/models/Quote');
 const Parser = require('rss-parser');
 const botState = require('../bot/botState');
+const schedulerState = require('../bot/schedulerState');
 const { BOT_TOKEN } = require('../config');
 
 const router = Router();
@@ -152,6 +155,97 @@ const QUOTES = [
 router.get('/quote', (req, res) => {
   const day = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
   res.json(QUOTES[day % QUOTES.length]);
+});
+
+// ── Admin: quote management ──────────────────────────────────────────────────
+
+function requireAdmin(req, res, next) {
+  const { initData } = req.query || req.body || {};
+  if (!initData) return res.status(400).json({ error: 'missing initData' });
+  if (process.env.NODE_ENV === 'production' && !verifyInitData(initData)) {
+    return res.status(403).json({ error: 'invalid initData' });
+  }
+  try {
+    const params = new URLSearchParams(initData);
+    const tgUser = JSON.parse(params.get('user') || '{}');
+    req.tgUserId = tgUser.id;
+    next();
+  } catch {
+    res.status(400).json({ error: 'bad initData' });
+  }
+}
+
+async function checkAdminRole(userId) {
+  const user = await User.findOne({ where: { telegramId: userId } });
+  return user && (user.role === 'admin' || user.role === 'owner');
+}
+
+// GET /api/admin/quotes
+router.get('/admin/quotes', requireAdmin, async (req, res) => {
+  if (!(await checkAdminRole(req.tgUserId))) return res.status(403).json({ error: 'forbidden' });
+  try {
+    const quotes = await Quote.findAll({ order: [['id', 'ASC']] });
+    res.json(quotes);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/admin/quotes
+router.post('/admin/quotes', express.json(), requireAdmin, async (req, res) => {
+  if (!(await checkAdminRole(req.tgUserId))) return res.status(403).json({ error: 'forbidden' });
+  const { text, author, category } = req.body;
+  if (!text || !author) return res.status(400).json({ error: 'text and author required' });
+  try {
+    const q = await Quote.create({ text: text.trim(), author: author.trim(), category: (category || '').trim() || null });
+    res.json(q);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// PUT /api/admin/quotes/:id
+router.put('/admin/quotes/:id', express.json(), requireAdmin, async (req, res) => {
+  if (!(await checkAdminRole(req.tgUserId))) return res.status(403).json({ error: 'forbidden' });
+  try {
+    const q = await Quote.findByPk(req.params.id);
+    if (!q) return res.status(404).json({ error: 'not found' });
+    const { text, author, category, isActive } = req.body;
+    await q.update({
+      ...(text !== undefined && { text: text.trim() }),
+      ...(author !== undefined && { author: author.trim() }),
+      ...(category !== undefined && { category: category.trim() || null }),
+      ...(isActive !== undefined && { isActive }),
+    });
+    res.json(q);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// DELETE /api/admin/quotes/:id
+router.delete('/admin/quotes/:id', requireAdmin, async (req, res) => {
+  if (!(await checkAdminRole(req.tgUserId))) return res.status(403).json({ error: 'forbidden' });
+  try {
+    const q = await Quote.findByPk(req.params.id);
+    if (!q) return res.status(404).json({ error: 'not found' });
+    await q.destroy();
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/admin/trigger-quote  (manual post now)
+router.post('/admin/trigger-quote', requireAdmin, async (req, res) => {
+  if (!(await checkAdminRole(req.tgUserId))) return res.status(403).json({ error: 'forbidden' });
+  if (!schedulerState.triggerQuote) return res.status(503).json({ error: 'scheduler not ready' });
+  try {
+    await schedulerState.triggerQuote();
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 module.exports = router;

@@ -31,7 +31,8 @@ const { aiMenuHandler, aiPickCallback, handleAiMessage, isWaitingAI } = require(
 const { premiumMenuHandler, premiumBuyCallback, preCheckoutHandler, successfulPaymentHandler } = require('./handlers/premium');
 const { broadcastMenuHandler, handleBroadcastMessage, isWaitingBroadcast } = require('./handlers/broadcast');
 const { referralHandler } = require('./handlers/referral');
-const { isOwner } = require('./middleware/auth');
+const { generateTweetImage, THEME_KEYS } = require('./handlers/graphics');
+const { isOwner, isAdmin } = require('./middleware/auth');
 
 function createBot() {
   const bot = new Telegraf(BOT_TOKEN);
@@ -78,6 +79,42 @@ function createBot() {
   });
   bot.hears('📱 Mini App', miniAppHandler);
   bot.hears('ℹ️ درباره ما', comingSoonHandler);
+
+  // Admin/Owner: send a tweet URL → auto-generate tweet card image
+  const TWEET_URL_RE = /https?:\/\/(twitter\.com|x\.com)\/(\w+)\/status\/(\d+)/i;
+  bot.hears(TWEET_URL_RE, async (ctx) => {
+    if (!(await isAdmin(ctx))) return;
+    const match = ctx.message.text.match(TWEET_URL_RE);
+    if (!match) return;
+    const username = match[2];
+    const Parser = require('rss-parser');
+    const rssParser = new Parser({ timeout: 8000, headers: { 'User-Agent': 'Mozilla/5.0' } });
+    const NITTER = ['https://nitter.privacydev.net', 'https://nitter.poast.org', 'https://nitter.nl'];
+    let tweet = null;
+    for (const inst of NITTER) {
+      try {
+        const feed = await rssParser.parseURL(`${inst}/${username}/rss`);
+        if (feed?.items?.length) {
+          const item = feed.items[0];
+          tweet = {
+            text: (item.title || '').replace(/^RT @\S+:\s*/i, '').slice(0, 280),
+            username,
+            date: item.pubDate ? new Date(item.pubDate).toLocaleDateString('fa-IR') : '',
+            link: ctx.message.text,
+          };
+          break;
+        }
+      } catch (_) {}
+    }
+    if (!tweet) return ctx.reply('❌ دریافت توییت ناموفق بود.');
+    const themeIdx = Math.floor(Math.random() * THEME_KEYS.length);
+    const imgBuffer = await generateTweetImage(tweet, THEME_KEYS[themeIdx]).catch(() => null);
+    if (!imgBuffer) return ctx.reply('❌ ساخت تصویر ناموفق بود.');
+    await ctx.replyWithPhoto({ source: imgBuffer }, {
+      caption: `🐦 *@${username}*\n\n${tweet.text}\n\n[مشاهده توییت اصلی](${tweet.link})`,
+      parse_mode: 'Markdown',
+    });
+  });
 
   // Admin commands
   bot.command('addadmin', addAdminCommand);

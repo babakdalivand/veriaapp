@@ -8,10 +8,14 @@ const TABS = [
   { id: 'profile',   icon: '◉',  label: 'پروفایل' },
 ]
 
-export default function BottomNav({ current, onChange }) {
+const ADMIN_TAB = { id: 'admin', icon: '🛠', label: 'ادمین' }
+
+export default function BottomNav({ current, onChange, isAdmin }) {
+  const tabs = isAdmin ? [...TABS, ADMIN_TAB] : TABS
+
   return (
     <nav className="bottom-nav">
-      {TABS.map(t => (
+      {tabs.map(t => (
         <button
           key={t.id}
           className={`nav-tab ${current === t.id ? 'active' : ''}`}

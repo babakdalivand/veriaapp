@@ -1,0 +1,81 @@
+.qa-hero {
+  background:linear-gradient(160deg,#070512 0%,#07070f 100%);
+  padding:36px 20px 28px; text-align:center; position:relative; overflow:hidden;
+}
+.qa-orb {
+  position:absolute; width:260px; height:260px; border-radius:50%;
+  top:-100px; left:50%; transform:translateX(-50%);
+  background:radial-gradient(circle,rgba(201,160,42,.12) 0%,transparent 70%);
+  pointer-events:none;
+}
+.qa-icon { font-size:3rem; color:#c9a02a; text-shadow:0 0 20px rgba(201,160,42,.4); margin-bottom:12px; line-height:1; }
+.qa-title { font-size:1.2rem; font-weight:700; margin-bottom:7px; }
+.qa-sub { font-size:.8rem; color:#6666a0; }
+
+.qa-actions { display:flex; gap:10px; padding:0 16px; margin-bottom:2px; }
+.qa-btn-add {
+  flex:1; padding:12px; border-radius:10px; border:none;
+  background:linear-gradient(135deg,rgba(201,160,42,.2),rgba(201,160,42,.1));
+  border:1px solid rgba(201,160,42,.3); color:#c9a02a;
+  font-size:.85rem; font-weight:600; cursor:pointer; font-family:inherit;
+  transition:var(--transition);
+}
+.qa-btn-add:active { opacity:.7; }
+.qa-btn-trigger {
+  padding:12px 18px; border-radius:10px; border:none;
+  background:linear-gradient(135deg,rgba(139,92,246,.2),rgba(139,92,246,.1));
+  border:1px solid rgba(139,92,246,.3); color:#8b5cf6;
+  font-size:.85rem; font-weight:600; cursor:pointer; font-family:inherit;
+  transition:var(--transition);
+}
+.qa-btn-trigger:disabled { opacity:.4; cursor:not-allowed; }
+.qa-btn-trigger:active { opacity:.7; }
+
+.qa-list { display:flex; flex-direction:column; gap:10px; padding:0 16px; }
+.qa-item { padding:15px; position:relative; }
+.qa-item-author { font-size:.75rem; color:#c9a02a; font-weight:600; margin-bottom:6px; }
+.qa-item-text { font-size:.82rem; color:#ccccee; line-height:1.6; margin-bottom:8px; }
+.qa-item-meta { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.qa-item-cat { font-size:.68rem; color:#44445a; background:rgba(255,255,255,.04); padding:2px 8px; border-radius:10px; }
+.qa-item-used { font-size:.68rem; color:#44445a; }
+.qa-item-inactive { opacity:.45; }
+.qa-badge-inactive { font-size:.65rem; background:rgba(248,81,73,.15); color:#f85149; padding:2px 8px; border-radius:10px; border:1px solid rgba(248,81,73,.2); }
+.qa-item-btns { display:flex; gap:6px; margin-top:10px; }
+.qa-btn-sm {
+  padding:5px 12px; border-radius:8px; border:none; font-size:.72rem; font-weight:600;
+  cursor:pointer; font-family:inherit; transition:var(--transition);
+}
+.qa-btn-edit { background:rgba(61,139,255,.12); border:1px solid rgba(61,139,255,.25); color:#3d8bff; }
+.qa-btn-toggle { background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); color:#888; }
+.qa-btn-del { background:rgba(248,81,73,.1); border:1px solid rgba(248,81,73,.2); color:#f85149; }
+.qa-btn-sm:active { opacity:.6; }
+
+.qa-modal-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:200;
+  display:flex; align-items:flex-end; justify-content:center;
+}
+.qa-modal {
+  background:#0e0e1a; border-radius:20px 20px 0 0; padding:24px 20px;
+  width:100%; max-width:500px; max-height:85vh; overflow-y:auto;
+}
+.qa-modal-title { font-size:1rem; font-weight:700; margin-bottom:18px; color:#c9a02a; }
+.qa-field { display:flex; flex-direction:column; gap:6px; margin-bottom:14px; }
+.qa-field label { font-size:.75rem; color:#8888aa; }
+.qa-field input, .qa-field textarea {
+  background:#141420; border:1px solid rgba(255,255,255,.08); border-radius:8px;
+  padding:10px 12px; color:#e0e0ff; font-size:.85rem; font-family:inherit;
+  outline:none; resize:vertical; direction:rtl;
+}
+.qa-field input:focus, .qa-field textarea:focus { border-color:rgba(201,160,42,.4); }
+.qa-modal-actions { display:flex; gap:10px; margin-top:6px; }
+.qa-btn-save {
+  flex:1; padding:12px; border-radius:10px; border:none;
+  background:linear-gradient(135deg,rgba(201,160,42,.25),rgba(201,160,42,.12));
+  border:1px solid rgba(201,160,42,.3); color:#c9a02a;
+  font-size:.9rem; font-weight:700; cursor:pointer; font-family:inherit;
+}
+.qa-btn-cancel {
+  padding:12px 20px; border-radius:10px; border:1px solid rgba(255,255,255,.08);
+  background:transparent; color:#6666a0; font-size:.9rem; cursor:pointer; font-family:inherit;
+}
+.qa-empty { text-align:center; padding:40px 20px; color:#44445a; font-size:.85rem; }
