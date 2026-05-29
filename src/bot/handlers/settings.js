@@ -29,10 +29,13 @@ async function settingsHandler(ctx) {
   if (!(await isAdmin(ctx))) return ctx.reply('⛔️ دسترسی ندارید.');
   const settings = await Settings.getSettings();
   const channel = settings.mainChannelId ? `📢 کانال: \`${settings.mainChannelId}\`` : '📢 کانال: تنظیم نشده';
-  const group = settings.mainGroupId ? `💬 گروه: \`${settings.mainGroupId}\`` : '💬 گروه: تنظیم نشده';
+  const groups = parseGroupIds(settings.groupIds);
+  const groupText = groups.length
+    ? groups.map(g => `\`${g}\``).join(' ،‌ ')
+    : 'تنظیم نشده';
 
   return ctx.reply(
-    `⚙️ *پنل تنظیمات بات*\n\n${channel}\n${group}`,
+    `⚙️ *پنل تنظیمات بات*\n\n${channel}\n💬 گروه‌ها: ${groupText}`,
     { parse_mode: 'Markdown', ...buildSettingsMenu(settings) }
   );
 }
@@ -70,11 +73,24 @@ async function settingsCallback(ctx) {
   }
 
   if (data === 'cfg:setgroup') {
-    settingsState.set(userId, { action: 'group' });
+    const groups = parseGroupIds(settings.groupIds);
+    return showGroupsMenu(ctx, groups);
+  }
+
+  if (data === 'cfg:grp:add') {
+    settingsState.set(userId, { action: 'group_add' });
     return ctx.reply(
-      '💬 آیدی گروه را وارد کنید:\n`-100xxxxxxxxxx`\n\n/cancel برای لغو',
+      '💬 آیدی گروه را وارد کنید:\n`@group_username` یا `-100xxxxxxxxxx`\n\n/cancel برای لغو',
       { parse_mode: 'Markdown' }
     );
+  }
+
+  if (data.startsWith('cfg:grp:del:')) {
+    const id = decodeURIComponent(data.slice('cfg:grp:del:'.length));
+    const groups = parseGroupIds(settings.groupIds).filter(g => g !== id);
+    settings.groupIds = groups.join(',');
+    await settings.save();
+    return showGroupsMenu(ctx, groups, true);
   }
 
   if (data === 'cfg:keywords') {
@@ -135,6 +151,33 @@ function parseKeywords(raw) {
   return raw.split(',').map(k => k.trim()).filter(Boolean);
 }
 
+function parseGroupIds(raw) {
+  if (!raw) return [];
+  return raw.split(',').map(g => g.trim()).filter(Boolean);
+}
+
+async function showGroupsMenu(ctx, groups, edit = false) {
+  const list = groups.length
+    ? groups.map((g, i) => `${i + 1}. \`${g}\``).join('\n')
+    : '_هنوز گروهی تنظیم نشده_';
+
+  const rows = [];
+  for (let i = 0; i < groups.length; i += 2) {
+    const row = [Markup.button.callback(`❌ ${groups[i]}`, `cfg:grp:del:${encodeURIComponent(groups[i])}`)];
+    if (groups[i + 1]) row.push(Markup.button.callback(`❌ ${groups[i + 1]}`, `cfg:grp:del:${encodeURIComponent(groups[i + 1])}`));
+    rows.push(row);
+  }
+  rows.push([Markup.button.callback('➕ افزودن گروه', 'cfg:grp:add')]);
+
+  const text = `💬 *گروه‌های بات* (${groups.length})\n\n${list}`;
+  const opts = { parse_mode: 'Markdown', ...Markup.inlineKeyboard(rows) };
+
+  if (edit) {
+    return ctx.editMessageText(text, opts).catch(() => ctx.reply(text, opts));
+  }
+  return ctx.reply(text, opts);
+}
+
 async function handleSettingsInput(ctx) {
   const userId = ctx.from.id;
   const state = settingsState.get(userId);
@@ -167,12 +210,17 @@ async function handleSettingsInput(ctx) {
     return true;
   }
 
-  if (state.action === 'group') {
+  if (state.action === 'group_add') {
     const val = text.trim();
-    settings.mainGroupId = parseInt(val) || val;
-    await settings.save();
+    const groups = parseGroupIds(settings.groupIds);
+    if (val && !groups.includes(val)) {
+      groups.push(val);
+      settings.groupIds = groups.join(',');
+      settings.mainGroupId = groups[0];
+      await settings.save();
+    }
     settingsState.delete(userId);
-    await ctx.reply(`✅ گروه اصلی تنظیم شد: \`${val}\``, { parse_mode: 'Markdown' });
+    await ctx.reply(`✅ گروه اضافه شد: \`${val}\`\nمجموع: ${groups.length} گروه`, { parse_mode: 'Markdown' });
     return true;
   }
 

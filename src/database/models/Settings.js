@@ -3,8 +3,9 @@ const { sequelize } = require('../connection');
 
 const Settings = sequelize.define('Settings', {
   botEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
-  mainGroupId: { type: DataTypes.BIGINT, allowNull: true },
-  mainChannelId: { type: DataTypes.BIGINT, allowNull: true },
+  mainGroupId: { type: DataTypes.STRING(255), allowNull: true },
+  mainChannelId: { type: DataTypes.STRING(255), allowNull: true },
+  groupIds: { type: DataTypes.TEXT, allowNull: true },
   welcomeMessage: { type: DataTypes.TEXT, defaultValue: 'به veriaapp خوش آمدید! 🎙️' },
   captchaEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
   antiSpamEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },

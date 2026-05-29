@@ -40,6 +40,9 @@ async function connectDB() {
     await sequelize.query(`ALTER TABLE Users ADD COLUMN IF NOT EXISTS premiumExpiry DATETIME NULL`).catch(() => {});
     await sequelize.query(`ALTER TABLE Users ADD COLUMN IF NOT EXISTS referredBy VARCHAR(255) NULL`).catch(() => {});
     await sequelize.query(`ALTER TABLE Users MODIFY COLUMN role ENUM('user','vip','premium','admin','owner') NOT NULL DEFAULT 'user'`).catch(() => {});
+    await sequelize.query(`ALTER TABLE Settings MODIFY COLUMN mainChannelId VARCHAR(255) NULL`).catch(() => {});
+    await sequelize.query(`ALTER TABLE Settings MODIFY COLUMN mainGroupId VARCHAR(255) NULL`).catch(() => {});
+    await sequelize.query(`ALTER TABLE Settings ADD COLUMN IF NOT EXISTS groupIds TEXT NULL`).catch(() => {});
     // Seed quotes table if empty
     const count = await Quote.count().catch(() => -1);
     if (count === 0) {

@@ -47,6 +47,8 @@ function SettingsTab({ qs, initData }) {
   const [s, setS] = useState(null)
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState('')
+  const [groupInput, setGroupInput] = useState('')
+  const [groupSaving, setGroupSaving] = useState(false)
 
   useEffect(() => {
     fetch(`/api/admin/settings${qs}`).then(r => r.json()).then(setS).catch(() => {})
@@ -72,7 +74,41 @@ function SettingsTab({ qs, initData }) {
     await save({ [key]: !s[key] })
   }
 
+  function parseGroups(raw) {
+    return raw ? raw.split(',').map(g => g.trim()).filter(Boolean) : []
+  }
+
+  async function addGroup() {
+    const val = groupInput.trim()
+    if (!val || !s) return
+    const groups = parseGroups(s.groupIds)
+    if (groups.includes(val)) { setGroupInput(''); return }
+    const updated = [...groups, val]
+    setGroupSaving(true)
+    await fetch(`/api/admin/settings${qs}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ groupIds: updated.join(','), mainGroupId: updated[0], initData }),
+    })
+    setS(p => ({ ...p, groupIds: updated.join(','), mainGroupId: updated[0] }))
+    setGroupInput('')
+    setGroupSaving(false)
+  }
+
+  async function removeGroup(gid) {
+    if (!s) return
+    const updated = parseGroups(s.groupIds).filter(g => g !== gid)
+    await fetch(`/api/admin/settings${qs}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ groupIds: updated.join(','), mainGroupId: updated[0] || null, initData }),
+    })
+    setS(p => ({ ...p, groupIds: updated.join(','), mainGroupId: updated[0] || null }))
+  }
+
   if (!s) return <div className="ap-empty">در حال بارگذاری...</div>
+
+  const groups = parseGroups(s.groupIds)
 
   return (
     <div>
@@ -103,19 +139,48 @@ function SettingsTab({ qs, initData }) {
         ))}
       </div>
 
-      <p className="sec-title">پیکربندی</p>
+      <p className="sec-title">📢 کانال ارسال محتوا</p>
       <div className="card">
         <div style={{ padding: '12px 16px 4px' }}>
-          <div className="ap-setting-label" style={{ marginBottom: 6 }}>📢 آیدی کانال اصلی</div>
-          <div className="ap-input-row" style={{ padding: 0, marginBottom: 10 }}>
-            <input className="ap-input" value={s.mainChannelId || ''} placeholder="@channel یا -100xxxxxxxxxx"
-              onChange={e => setS(p => ({ ...p, mainChannelId: e.target.value }))} dir="ltr" />
-          </div>
-          <div className="ap-setting-label" style={{ marginBottom: 6 }}>💬 آیدی گروه اصلی</div>
-          <div className="ap-input-row" style={{ padding: 0, marginBottom: 10 }}>
-            <input className="ap-input" value={s.mainGroupId || ''} placeholder="-100xxxxxxxxxx"
-              onChange={e => setS(p => ({ ...p, mainGroupId: e.target.value }))} dir="ltr" />
-          </div>
+          <div className="ap-setting-sub" style={{ marginBottom: 8 }}>نقل‌قول روزانه و پست‌های ادمین به این کانال ارسال می‌شوند</div>
+          <input className="ap-input" value={s.mainChannelId || ''} placeholder="@channel_username یا -100xxxxxxxxxx"
+            onChange={e => setS(p => ({ ...p, mainChannelId: e.target.value }))} dir="ltr" />
+        </div>
+        <button className="ap-save-btn" onClick={() => save({ mainChannelId: s.mainChannelId })} disabled={saving}>
+          {saving ? 'در حال ذخیره...' : '💾 ذخیره کانال'}
+        </button>
+      </div>
+
+      <p className="sec-title">💬 گروه‌ها ({groups.length})</p>
+      <div className="card">
+        <div style={{ padding: '8px 16px 4px' }}>
+          <div className="ap-setting-sub" style={{ marginBottom: 10 }}>ضد اسپم، کپچا و کلمات ممنوعه در این گروه‌ها فعال می‌شوند</div>
+          {groups.length > 0 && (
+            <div className="ap-kw-list" style={{ padding: 0, marginBottom: 10 }}>
+              {groups.map(gid => (
+                <div key={gid} className="ap-kw-chip">
+                  <span style={{ direction: 'ltr', fontFamily: 'monospace', fontSize: '.72rem' }}>{gid}</span>
+                  <button className="ap-kw-del" onClick={() => removeGroup(gid)}>✕</button>
+                </div>
+              ))}
+            </div>
+          )}
+          {groups.length === 0 && <div style={{ color: '#44445a', fontSize: '.78rem', marginBottom: 10 }}>هنوز گروهی اضافه نشده</div>}
+        </div>
+        <div className="ap-kw-add-row" style={{ padding: '0 16px 12px' }}>
+          <input className="ap-kw-input" value={groupInput} dir="ltr"
+            placeholder="@group_username یا -100xxxxxxxxxx"
+            onChange={e => setGroupInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && addGroup()} />
+          <button className="ap-kw-btn" onClick={addGroup} disabled={groupSaving || !groupInput.trim()}>
+            + افزودن
+          </button>
+        </div>
+      </div>
+
+      <p className="sec-title">⚙️ سایر تنظیمات</p>
+      <div className="card">
+        <div style={{ padding: '12px 16px 4px' }}>
           <div className="ap-setting-label" style={{ marginBottom: 6 }}>📝 پیام خوش‌آمدگویی</div>
           <textarea className="ap-input" rows={3} value={s.welcomeMessage || ''} dir="rtl"
             onChange={e => setS(p => ({ ...p, welcomeMessage: e.target.value }))} />
@@ -123,7 +188,7 @@ function SettingsTab({ qs, initData }) {
           <input className="ap-input" type="number" min={1} max={10} value={s.warnLimit || 3} dir="ltr"
             onChange={e => setS(p => ({ ...p, warnLimit: parseInt(e.target.value) || 3 }))} />
         </div>
-        <button className="ap-save-btn" onClick={() => save(s)} disabled={saving}>
+        <button className="ap-save-btn" onClick={() => save({ welcomeMessage: s.welcomeMessage, warnLimit: s.warnLimit })} disabled={saving}>
           {saving ? 'در حال ذخیره...' : '💾 ذخیره تنظیمات'}
         </button>
       </div>

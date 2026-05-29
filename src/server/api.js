@@ -262,6 +262,7 @@ router.get('/admin/settings', requireAdmin, async (req, res) => {
       welcomeMessage: s.welcomeMessage,
       mainChannelId: s.mainChannelId,
       mainGroupId: s.mainGroupId,
+      groupIds: s.groupIds || '',
       captchaEnabled: s.captchaEnabled,
       antiSpamEnabled: s.antiSpamEnabled,
       antiLinkEnabled: s.antiLinkEnabled,
@@ -276,7 +277,7 @@ router.put('/admin/settings', express.json(), requireAdmin, async (req, res) => 
   if (!(await checkAdminRole(req.tgUserId))) return res.status(403).json({ error: 'forbidden' });
   try {
     const s = await Settings.getSettings();
-    const allowed = ['botEnabled','welcomeMessage','mainChannelId','mainGroupId',
+    const allowed = ['botEnabled','welcomeMessage','mainChannelId','mainGroupId','groupIds',
                      'captchaEnabled','antiSpamEnabled','antiLinkEnabled','warnLimit','keywords'];
     for (const key of allowed) {
       if (req.body[key] !== undefined) s[key] = req.body[key];
