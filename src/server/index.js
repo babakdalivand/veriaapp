@@ -11,7 +11,7 @@ async function startServer() {
 
   app.use(express.json());
 
-  app.get('/', (req, res) => res.send('ArcaVox is running 🎙️'));
+  app.get('/', (req, res) => res.send('veriaapp is running 🎙️'));
 
   if (USE_WEBHOOK) {
     const webhookPath = `/webhook/${WEBHOOK_SECRET}`;

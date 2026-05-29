@@ -1,7 +1,7 @@
 {
   "name": "veriaapp",
   "version": "1.0.0",
-  "description": "ArcaVox - Premium Media Intelligence Ecosystem",
+  "description": "veriaapp - Premium Media Intelligence Ecosystem",
   "main": "app.js",
   "scripts": {
     "start": "node app.js"

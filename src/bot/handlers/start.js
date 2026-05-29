@@ -8,7 +8,7 @@ async function startHandler(ctx) {
 
   if (userId === OWNER_ID) {
     return ctx.reply(
-      `🎙️ *خوش آمدید، مالک عزیز!*\n\nپنل مدیریت ArcaVox در اختیار شماست.`,
+      `🎙️ *خوش آمدید، مالک عزیز!*\n\nپنل مدیریت veriaapp در اختیار شماست.`,
       { parse_mode: 'Markdown', ...ownerKeyboard }
     );
   }
@@ -16,13 +16,13 @@ async function startHandler(ctx) {
   const admin = await Admin.findOne({ telegramId: userId });
   if (admin) {
     return ctx.reply(
-      `🎙️ *خوش آمدی ${name}!*\n\nبه پنل ادمین ArcaVox خوش آمدی.`,
+      `🎙️ *خوش آمدی ${name}!*\n\nبه پنل ادمین veriaapp خوش آمدی.`,
       { parse_mode: 'Markdown', ...adminKeyboard }
     );
   }
 
   return ctx.reply(
-    `🎙️ *سلام ${name}!*\n\nبه ArcaVox خوش آمدی.`,
+    `🎙️ *سلام ${name}!*\n\nبه veriaapp خوش آمدی.`,
     { parse_mode: 'Markdown', ...userKeyboard }
   );
 }

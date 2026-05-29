@@ -63,7 +63,7 @@ async function addAdminCommand(ctx) {
   try {
     await ctx.telegram.sendMessage(
       targetId,
-      `🔑 *شما به عنوان ادمین ArcaVox اضافه شدید!*`,
+      `🔑 *شما به عنوان ادمین veriaapp اضافه شدید!*`,
       { parse_mode: 'Markdown', ...adminKeyboard }
     );
   } catch (_) {}
