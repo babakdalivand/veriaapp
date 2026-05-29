@@ -26,7 +26,6 @@ async function antiLinkMiddleware(ctx, next) {
 
     if (!hasLink) return next();
 
-    console.log('[ANTILINK] deleting msg from', ctx.from.id);
     await ctx.deleteMessage().catch(e => console.log('[ANTILINK] delete error:', e.message));
 
     const userId = ctx.from.id;
@@ -37,7 +36,6 @@ async function antiLinkMiddleware(ctx, next) {
       return null;
     });
 
-    console.log('[ANTILINK] warn result:', result?.action);
 
     if (result) {
       const name = ctx.from.first_name || 'کاربر';
