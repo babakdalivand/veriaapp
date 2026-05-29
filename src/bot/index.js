@@ -28,6 +28,14 @@ function createBot() {
 
   bot.use(saveUser);
 
+  // TEMP DEBUG
+  bot.use((ctx, next) => {
+    if (ctx.chat && ctx.chat.type !== 'private') {
+      console.log(`[DEBUG] update=${ctx.updateType} chat=${ctx.chat.id} from=${ctx.from?.id} text=${ctx.message?.text?.slice(0, 50)}`);
+    }
+    return next();
+  });
+
   // Moderation middleware (group messages only)
   bot.use(antiSpamMiddleware);
   bot.use(antiLinkMiddleware);
