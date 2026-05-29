@@ -29,6 +29,9 @@ const { quoteHandler } = require('./handlers/quote');
 const { twitterMenuHandler, twitterCallback, handleTwitterUsername, userState: twitterUserState } = require('./handlers/twitter');
 const { aiMenuHandler, aiPickCallback, handleAiMessage, isWaitingAI } = require('./handlers/ai');
 const { premiumMenuHandler, premiumBuyCallback, preCheckoutHandler, successfulPaymentHandler } = require('./handlers/premium');
+const { broadcastMenuHandler, handleBroadcastMessage, isWaitingBroadcast } = require('./handlers/broadcast');
+const { referralHandler } = require('./handlers/referral');
+const { isOwner } = require('./middleware/auth');
 
 function createBot() {
   const bot = new Telegraf(BOT_TOKEN);
@@ -48,6 +51,7 @@ function createBot() {
     if (ytUserState.get(userId) === 'waiting_url') return handleYoutubeUrl(ctx);
     if (isWaitingAI(userId)) return handleAiMessage(ctx);
     if (twitterUserState.get(userId) === 'waiting_twitter') return handleTwitterUsername(ctx);
+    if (isWaitingBroadcast(userId)) return handleBroadcastMessage(ctx);
     return next();
   });
 
@@ -67,6 +71,11 @@ function createBot() {
   bot.hears('🤖 دستیار هوشمند', aiMenuHandler);
   bot.hears('🐦 توییتر', twitterMenuHandler);
   bot.hears('⭐ پریمیوم', premiumMenuHandler);
+  bot.hears('🔗 دعوت دوستان', referralHandler);
+  bot.hears('📢 Broadcast', async (ctx) => {
+    if (!(await isOwner(ctx))) return ctx.reply('⛔️ فقط مالک بات.');
+    return broadcastMenuHandler(ctx);
+  });
   bot.hears('📱 Mini App', miniAppHandler);
   bot.hears('ℹ️ درباره ما', comingSoonHandler);
 

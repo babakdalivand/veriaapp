@@ -1,287 +1,255 @@
 <!DOCTYPE html>
-<html lang="fa" dir="rtl">
+<html dir="rtl" lang="fa">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Veriaapp</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Veriaapp</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
-    body {
-      font-family: 'Segoe UI', Tahoma, sans-serif;
-      background: var(--tg-theme-bg-color, #1a1a2e);
-      color: var(--tg-theme-text-color, #eaeaea);
-      min-height: 100vh;
-      direction: rtl;
-    }
+:root {
+  --bg: #0d1117;
+  --card: #161b22;
+  --card2: #1c2333;
+  --accent: #e94560;
+  --accent2: #533483;
+  --green: #3fb950;
+  --yellow: #d29922;
+  --text: #e6edf3;
+  --text2: #8b949e;
+  --border: rgba(255,255,255,0.08);
+  --r: 14px;
+}
 
-    .header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      padding: 24px 20px;
-      text-align: center;
-      position: relative;
-    }
+body {
+  font-family: 'Vazirmatn', Tahoma, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding-bottom: 24px;
+}
 
-    .avatar {
-      width: 72px;
-      height: 72px;
-      border-radius: 50%;
-      border: 3px solid rgba(255,255,255,0.5);
-      margin: 0 auto 12px;
-      display: block;
-      background: rgba(255,255,255,0.2);
-      object-fit: cover;
-    }
+/* HEADER */
+.header {
+  background: linear-gradient(160deg, #1c2333 0%, #0d1117 100%);
+  padding: 28px 20px 22px;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+}
+.avatar {
+  width: 76px; height: 76px;
+  background: linear-gradient(135deg, var(--accent2), var(--accent));
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 34px; margin: 0 auto 12px;
+  border: 3px solid rgba(255,255,255,0.12);
+}
+.h-name { font-size: 19px; font-weight: 700; }
+.h-sub { font-size: 12px; color: var(--text2); margin-top: 3px; }
+.badge {
+  display: inline-block; margin-top: 9px;
+  padding: 4px 14px; border-radius: 20px;
+  font-size: 12px; font-weight: 600;
+}
+.b-user   { background: rgba(255,255,255,0.1); }
+.b-vip    { background: linear-gradient(90deg,#11998e,#38ef7d); color:#000; }
+.b-premium{ background: linear-gradient(90deg,#f7971e,#ffd200); color:#000; }
+.b-admin  { background: linear-gradient(90deg,#4776E6,#8E54E9); }
+.b-owner  { background: linear-gradient(90deg,#e94560,#c62a47); }
 
-    .avatar-placeholder {
-      width: 72px;
-      height: 72px;
-      border-radius: 50%;
-      border: 3px solid rgba(255,255,255,0.5);
-      margin: 0 auto 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 32px;
-      background: rgba(255,255,255,0.2);
-    }
+/* CONTENT */
+.content { padding: 14px 16px; }
 
-    .username {
-      font-size: 20px;
-      font-weight: 700;
-      color: #fff;
-      margin-bottom: 4px;
-    }
+.sec-title {
+  font-size: 11px; font-weight: 600;
+  color: var(--text2); letter-spacing: 1px;
+  text-transform: uppercase;
+  margin: 18px 0 10px;
+}
 
-    .user-id {
-      font-size: 13px;
-      color: rgba(255,255,255,0.7);
-    }
+/* STATS */
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+.stat {
+  background: var(--card); border-radius: var(--r);
+  padding: 15px; text-align: center;
+  border: 1px solid var(--border);
+}
+.stat-icon { font-size: 22px; margin-bottom: 5px; }
+.stat-val { font-size: 20px; font-weight: 700; }
+.stat-lbl { font-size: 10px; color: var(--text2); margin-top: 2px; }
 
-    .role-badge {
-      display: inline-block;
-      padding: 3px 12px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 600;
-      margin-top: 8px;
-    }
+/* INVITE */
+.invite-box {
+  background: var(--card); border-radius: var(--r);
+  padding: 16px; border: 1px solid var(--border);
+}
+.invite-row {
+  display: flex; justify-content: space-between;
+  align-items: center; margin-bottom: 12px;
+}
+.invite-row span { font-size: 13px; color: var(--text2); }
+.invite-count { font-size: 22px; font-weight: 700; color: var(--accent); }
+.link-text {
+  background: rgba(255,255,255,0.04); border-radius: 9px;
+  padding: 9px 12px; font-size: 11px;
+  color: var(--text2); word-break: break-all;
+  direction: ltr; text-align: left; margin-bottom: 10px;
+}
+.copy-btn {
+  width: 100%; padding: 12px;
+  background: linear-gradient(135deg, var(--accent2), var(--accent));
+  color: #fff; border: none; border-radius: 10px;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: opacity .2s;
+}
+.copy-btn:active { opacity: .75; }
+.copy-btn.ok { background: linear-gradient(135deg,#11998e,#38ef7d); color:#000; }
 
-    .role-owner { background: #ffd700; color: #333; }
-    .role-admin { background: #00b4d8; color: #fff; }
-    .role-vip { background: #9b59b6; color: #fff; }
-    .role-user { background: rgba(255,255,255,0.2); color: #fff; }
+/* PREMIUM BANNER */
+.prem-banner {
+  background: rgba(247,151,30,.08);
+  border: 1px solid rgba(247,151,30,.25);
+  border-radius: var(--r);
+  padding: 14px; display: flex; align-items: center; gap: 12px;
+  margin-top: 10px;
+}
+.prem-banner .ico { font-size: 28px; }
+.prem-banner .t { flex: 1; }
+.prem-banner .t1 { font-size: 13px; font-weight: 600; color: #ffd200; }
+.prem-banner .t2 { font-size: 11px; color: var(--text2); margin-top: 2px; }
+.prem-btn {
+  background: linear-gradient(90deg,#f7971e,#ffd200);
+  color: #000; border: none; border-radius: 8px;
+  padding: 8px 14px; font-size: 12px; font-weight: 700; cursor: pointer;
+}
 
-    .content {
-      padding: 20px;
-      max-width: 480px;
-      margin: 0 auto;
-    }
+/* FEATURES */
+.features { display: grid; grid-template-columns: repeat(4,1fr); gap: 9px; }
+.feat {
+  background: var(--card); border-radius: var(--r);
+  padding: 13px 6px; text-align: center;
+  border: 1px solid var(--border); cursor: pointer;
+  transition: transform .15s, background .15s;
+}
+.feat:active { transform: scale(.93); background: var(--card2); }
+.feat-ico { font-size: 24px; margin-bottom: 5px; }
+.feat-lbl { font-size: 10px; color: var(--text2); }
 
-    .section-title {
-      font-size: 14px;
-      color: var(--tg-theme-hint-color, #888);
-      margin-bottom: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .cards {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-bottom: 24px;
-    }
-
-    .card {
-      background: var(--tg-theme-secondary-bg-color, #16213e);
-      border-radius: 16px;
-      padding: 18px 14px;
-      text-align: center;
-      cursor: pointer;
-      transition: transform 0.15s, opacity 0.15s;
-      border: 1px solid rgba(255,255,255,0.06);
-    }
-
-    .card:active { transform: scale(0.96); opacity: 0.8; }
-
-    .card-icon { font-size: 28px; margin-bottom: 8px; }
-    .card-label { font-size: 13px; font-weight: 600; color: var(--tg-theme-text-color, #eaeaea); }
-    .card-sub { font-size: 11px; color: var(--tg-theme-hint-color, #888); margin-top: 3px; }
-
-    .info-box {
-      background: var(--tg-theme-secondary-bg-color, #16213e);
-      border-radius: 16px;
-      padding: 16px;
-      margin-bottom: 16px;
-      border: 1px solid rgba(255,255,255,0.06);
-    }
-
-    .info-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 8px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.06);
-      font-size: 14px;
-    }
-    .info-row:last-child { border-bottom: none; }
-    .info-label { color: var(--tg-theme-hint-color, #888); }
-    .info-value { font-weight: 600; }
-
-    .btn {
-      width: 100%;
-      padding: 14px;
-      border: none;
-      border-radius: 12px;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: opacity 0.15s;
-      font-family: inherit;
-      direction: rtl;
-    }
-    .btn:active { opacity: 0.8; }
-    .btn-primary {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: #fff;
-    }
-
-    .loading {
-      text-align: center;
-      padding: 60px 20px;
-      color: var(--tg-theme-hint-color, #888);
-    }
-    .spinner {
-      width: 36px; height: 36px;
-      border: 3px solid rgba(255,255,255,0.1);
-      border-top-color: #667eea;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      margin: 0 auto 16px;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-  </style>
+/* LOADER */
+.loader { text-align: center; padding: 60px 20px; color: var(--text2); }
+.spin {
+  width: 30px; height: 30px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: rot .8s linear infinite;
+  margin: 0 auto 12px;
+}
+@keyframes rot { to { transform: rotate(360deg); } }
+</style>
 </head>
 <body>
 
-<div id="loading" class="loading">
-  <div class="spinner"></div>
-  <div>در حال بارگذاری...</div>
-</div>
-
-<div id="app" style="display:none">
-  <div class="header">
-    <div class="avatar-placeholder" id="avatarEl">👤</div>
-    <div class="username" id="nameEl">کاربر</div>
-    <div class="user-id" id="userIdEl"></div>
-    <div class="role-badge role-user" id="roleBadge">کاربر</div>
-  </div>
-
-  <div class="content">
-    <div class="section-title">امکانات</div>
-    <div class="cards">
-      <div class="card" onclick="openSection('youtube')">
-        <div class="card-icon">📺</div>
-        <div class="card-label">دانلود یوتیوب</div>
-        <div class="card-sub">به زودی</div>
-      </div>
-      <div class="card" onclick="openSection('news')">
-        <div class="card-icon">📰</div>
-        <div class="card-label">اخبار</div>
-        <div class="card-sub">به زودی</div>
-      </div>
-      <div class="card" onclick="openSection('quotes')">
-        <div class="card-icon">💬</div>
-        <div class="card-label">نقل‌قول</div>
-        <div class="card-sub">به زودی</div>
-      </div>
-      <div class="card" onclick="openSection('about')">
-        <div class="card-icon">ℹ️</div>
-        <div class="card-label">درباره ما</div>
-        <div class="card-sub">Veriaapp</div>
-      </div>
-    </div>
-
-    <div class="section-title">اطلاعات حساب</div>
-    <div class="info-box" id="infoBox">
-      <div class="info-row">
-        <span class="info-label">آیدی تلگرام</span>
-        <span class="info-value" id="infoId">—</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">نام کاربری</span>
-        <span class="info-value" id="infoUsername">—</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">نقش</span>
-        <span class="info-value" id="infoRole">—</span>
-      </div>
-    </div>
-
-    <button class="btn btn-primary" onclick="closeApp()">بازگشت به بات</button>
-  </div>
+<div id="root">
+  <div class="loader"><div class="spin"></div>در حال بارگذاری...</div>
 </div>
 
 <script>
-  const tg = window.Telegram.WebApp;
-  tg.ready();
-  tg.expand();
-  tg.setHeaderColor('#667eea');
+const tg = window.Telegram?.WebApp;
+if (tg) { tg.ready(); tg.expand(); }
 
-  const roleMap = {
-    owner: { label: 'مالک', cls: 'role-owner' },
-    admin: { label: 'ادمین', cls: 'role-admin' },
-    vip: { label: 'VIP', cls: 'role-vip' },
-    user: { label: 'کاربر', cls: 'role-user' },
-  };
+const tgUser = tg?.initDataUnsafe?.user || {};
+const initData = tg?.initData || '';
+const BASE = location.origin;
 
-  async function init() {
-    const user = tg.initDataUnsafe?.user;
-    if (!user) {
-      document.getElementById('loading').innerHTML = '<p style="color:#e74c3c">خطا: باید از داخل تلگرام باز شود.</p>';
-      return;
-    }
+const ROLES = { user:'کاربر', vip:'VIP', premium:'پریمیوم ⭐', admin:'ادمین', owner:'مالک 👑' };
 
-    // Show user info
-    document.getElementById('nameEl').textContent = user.first_name + (user.last_name ? ' ' + user.last_name : '');
-    document.getElementById('userIdEl').textContent = 'ID: ' + user.id;
-    document.getElementById('infoId').textContent = user.id;
-    document.getElementById('infoUsername').textContent = user.username ? '@' + user.username : '—';
+async function load() {
+  const [meR, stR] = await Promise.all([
+    fetch(`${BASE}/api/me?initData=${encodeURIComponent(initData)}`).catch(()=>null),
+    fetch(`${BASE}/api/stats`).catch(()=>null),
+  ]);
+  const me    = meR?.ok    ? await meR.json()  : {};
+  const stats = stR?.ok    ? await stR.json()  : {};
+  render(me, stats);
+}
 
-    if (user.photo_url) {
-      document.getElementById('avatarEl').outerHTML = `<img class="avatar" src="${user.photo_url}" id="avatarEl">`;
-    }
+function render(me, st) {
+  const name   = me.firstName || tgUser.first_name || 'کاربر';
+  const uname  = me.username  || tgUser.username   || '';
+  const role   = me.role      || 'user';
+  const refs   = me.referralCount ?? 0;
+  const link   = me.inviteLink   || '';
+  const active = role === 'premium' && me.premiumExpiry && new Date(me.premiumExpiry) > new Date();
 
-    // Fetch user role from API
-    try {
-      const res = await fetch('/api/user?id=' + user.id + '&initData=' + encodeURIComponent(tg.initData));
-      if (res.ok) {
-        const data = await res.json();
-        const role = data.role || 'user';
-        const r = roleMap[role] || roleMap.user;
-        const badge = document.getElementById('roleBadge');
-        badge.textContent = r.label;
-        badge.className = 'role-badge ' + r.cls;
-        document.getElementById('infoRole').textContent = r.label;
-      }
-    } catch {}
+  document.getElementById('root').innerHTML = `
+<div class="header">
+  <div class="avatar">👤</div>
+  <div class="h-name">${x(name)}</div>
+  ${uname ? `<div class="h-sub">@${x(uname)}</div>` : ''}
+  <div class="badge b-${role}">${ROLES[role]||role}</div>
+</div>
 
-    document.getElementById('loading').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-  }
+<div class="content">
+  <div class="sec-title">📊 آمار کلی</div>
+  <div class="stats">
+    <div class="stat"><div class="stat-icon">👤</div><div class="stat-val">${st.totalUsers??'—'}</div><div class="stat-lbl">کل کاربران</div></div>
+    <div class="stat"><div class="stat-icon">🆕</div><div class="stat-val">${st.newToday??'—'}</div><div class="stat-lbl">کاربر امروز</div></div>
+    <div class="stat"><div class="stat-icon">📅</div><div class="stat-val">${st.newThisWeek??'—'}</div><div class="stat-lbl">این هفته</div></div>
+    <div class="stat"><div class="stat-icon">⭐</div><div class="stat-val">${st.premiumUsers??'—'}</div><div class="stat-lbl">پریمیوم فعال</div></div>
+  </div>
 
-  function openSection(section) {
-    tg.showAlert('این بخش به زودی اضافه می‌شه! 🚀');
-  }
+  ${!active ? `
+  <div class="prem-banner">
+    <div class="ico">⭐</div>
+    <div class="t"><div class="t1">Veriaapp Premium</div><div class="t2">دسترسی نامحدود — ۱۰۰ ستاره ماهانه</div></div>
+    <button class="prem-btn" onclick="tg?.close()">خرید</button>
+  </div>` : ''}
 
-  function closeApp() {
-    tg.close();
-  }
+  <div class="sec-title">🔗 دعوت دوستان</div>
+  <div class="invite-box">
+    <div class="invite-row">
+      <span>دوستان دعوت‌شده</span>
+      <div class="invite-count">${refs} نفر</div>
+    </div>
+    ${link ? `
+    <div class="link-text" id="lnk">${x(link)}</div>
+    <button class="copy-btn" id="cbtn" onclick="cp(${JSON.stringify(link)})">📋 کپی لینک دعوت</button>
+    ` : '<div style="font-size:13px;color:var(--text2)">لاگین کن تا لینک دعوتت رو ببینی</div>'}
+  </div>
 
-  init();
+  <div class="sec-title">🚀 دسترسی سریع</div>
+  <div class="features">
+    <div class="feat" onclick="close_()"><div class="feat-ico">📺</div><div class="feat-lbl">یوتیوب</div></div>
+    <div class="feat" onclick="close_()"><div class="feat-ico">🤖</div><div class="feat-lbl">هوش مصنوعی</div></div>
+    <div class="feat" onclick="close_()"><div class="feat-ico">📰</div><div class="feat-lbl">اخبار</div></div>
+    <div class="feat" onclick="close_()"><div class="feat-ico">🐦</div><div class="feat-lbl">توییتر</div></div>
+    <div class="feat" onclick="close_()"><div class="feat-ico">💬</div><div class="feat-lbl">نقل‌قول</div></div>
+    <div class="feat" onclick="close_()"><div class="feat-ico">⭐</div><div class="feat-lbl">پریمیوم</div></div>
+    <div class="feat" onclick="close_()"><div class="feat-ico">🔗</div><div class="feat-lbl">دعوت</div></div>
+    <div class="feat" onclick="close_()"><div class="feat-ico">ℹ️</div><div class="feat-lbl">درباره ما</div></div>
+  </div>
+</div>`;
+}
+
+function cp(link) {
+  navigator.clipboard?.writeText(link).then(() => {
+    const b = document.getElementById('cbtn');
+    b.textContent = '✅ کپی شد!';
+    b.classList.add('ok');
+    setTimeout(() => { b.textContent = '📋 کپی لینک دعوت'; b.classList.remove('ok'); }, 2000);
+    tg?.HapticFeedback?.notificationOccurred('success');
+  }).catch(() => tg?.showAlert('لینک: ' + link));
+}
+
+function close_() { tg?.close(); }
+
+function x(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+load().catch(() => render({}, {}));
 </script>
 </body>
 </html>

@@ -16,6 +16,9 @@ async function startServer() {
   await connectDB();
 
   const bot = createBot();
+  const botState = require('../bot/botState');
+  bot.telegram.getMe().then(info => { botState.username = info.username; }).catch(() => {});
+
   const app = express();
 
   app.use(express.json());

@@ -12,4 +12,7 @@ module.exports = {
   NODE_ENV: process.env.NODE_ENV || 'development',
   USE_WEBHOOK: process.env.USE_WEBHOOK === 'true',
   ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
+  GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+  OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
+  DEEPSEEK_API_KEY: process.env.DEEPSEEK_API_KEY,
 };

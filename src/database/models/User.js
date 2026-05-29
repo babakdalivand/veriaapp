@@ -11,6 +11,7 @@ const User = sequelize.define('User', {
   warnCount: { type: DataTypes.INTEGER, defaultValue: 0 },
   lastSeen: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
   premiumExpiry: { type: DataTypes.DATE, allowNull: true },
+  referredBy: { type: DataTypes.STRING, allowNull: true },
 });
 
 module.exports = User;

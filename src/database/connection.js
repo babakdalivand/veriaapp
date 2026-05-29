@@ -14,6 +14,7 @@ async function connectDB() {
     await sequelize.sync();
     // Add new columns that may not exist yet (safe, idempotent)
     await sequelize.query(`ALTER TABLE Users ADD COLUMN IF NOT EXISTS premiumExpiry DATETIME NULL`).catch(() => {});
+    await sequelize.query(`ALTER TABLE Users ADD COLUMN IF NOT EXISTS referredBy VARCHAR(255) NULL`).catch(() => {});
     await sequelize.query(`ALTER TABLE Users MODIFY COLUMN role ENUM('user','vip','premium','admin','owner') NOT NULL DEFAULT 'user'`).catch(() => {});
     console.log('MySQL connected');
   } catch (err) {

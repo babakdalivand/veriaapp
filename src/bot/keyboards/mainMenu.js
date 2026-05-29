@@ -7,6 +7,7 @@ const ownerKeyboard = Markup.keyboard([
   ['📺 دانلود یوتیوب', '🤖 دستیار هوشمند'],
   ['📰 آخرین اخبار', '💬 نقل‌قول روز'],
   ['🐦 توییتر', '⭐ پریمیوم'],
+  ['🔗 دعوت دوستان', '📢 Broadcast'],
 ]).resize();
 
 const adminKeyboard = Markup.keyboard([
@@ -15,13 +16,15 @@ const adminKeyboard = Markup.keyboard([
   ['📺 دانلود یوتیوب', '🤖 دستیار هوشمند'],
   ['📰 آخرین اخبار', '💬 نقل‌قول روز'],
   ['🐦 توییتر', '⭐ پریمیوم'],
+  ['🔗 دعوت دوستان'],
 ]).resize();
 
 const userKeyboard = Markup.keyboard([
   ['📺 دانلود یوتیوب', '🤖 دستیار هوشمند'],
   ['📰 آخرین اخبار', '💬 نقل‌قول روز'],
   ['🐦 توییتر', '⭐ پریمیوم'],
-  ['📱 Mini App', 'ℹ️ درباره ما'],
+  ['🔗 دعوت دوستان', '📱 Mini App'],
+  ['ℹ️ درباره ما'],
 ]).resize();
 
 module.exports = { ownerKeyboard, adminKeyboard, userKeyboard };

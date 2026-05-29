@@ -1,16 +1,31 @@
 const { isOwner } = require('../middleware/auth');
 const Admin = require('../../database/models/Admin');
 const User = require('../../database/models/User');
+const { Op } = require('sequelize');
 const { adminKeyboard } = require('../keyboards/mainMenu');
 
 async function statsHandler(ctx) {
-  const totalUsers = await User.count();
-  const totalAdmins = await Admin.count();
-  const blocked = await User.count({ where: { isBlocked: true } });
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+  const [totalUsers, totalAdmins, blocked, premiumUsers, newToday, newThisWeek, referred] = await Promise.all([
+    User.count(),
+    Admin.count(),
+    User.count({ where: { isBlocked: true } }),
+    User.count({ where: { role: 'premium', premiumExpiry: { [Op.gt]: now } } }).catch(() => 0),
+    User.count({ where: { createdAt: { [Op.gte]: todayStart } } }).catch(() => 0),
+    User.count({ where: { createdAt: { [Op.gte]: weekStart } } }).catch(() => 0),
+    User.count({ where: { referredBy: { [Op.ne]: null } } }).catch(() => 0),
+  ]);
 
   return ctx.reply(
     `📊 *آمار و تحلیل*\n\n` +
     `👤 کل کاربران: ${totalUsers}\n` +
+    `🆕 کاربران امروز: ${newToday}\n` +
+    `📅 کاربران این هفته: ${newThisWeek}\n` +
+    `⭐ پریمیوم فعال: ${premiumUsers}\n` +
+    `🔗 از طریق دعوت: ${referred}\n` +
     `🔑 ادمین‌ها: ${totalAdmins}\n` +
     `🚫 بلاک‌شده‌ها: ${blocked}`,
     { parse_mode: 'Markdown' }
