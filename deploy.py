@@ -39,7 +39,7 @@ def run():
     print(out or err)
 
     print('\n[2/4] npm install...')
-    out, err = ssh_exec(client, f'cd {NODE_PATH} && npm install --production 2>&1 | tail -5')
+    out, err = ssh_exec(client, f'cd {NODE_PATH} && /opt/alt/alt-nodejs20/root/usr/bin/npm install --production 2>&1 | tail -5')
     print(out or err)
 
     print('\n[3/4] Restarting Passenger...')

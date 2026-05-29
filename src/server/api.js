@@ -7,6 +7,7 @@ const Admin = require('../database/models/Admin');
 const Warn = require('../database/models/Warn');
 const Quote = require('../database/models/Quote');
 const BotCommand = require('../database/models/BotCommand');
+const ScheduledPost = require('../database/models/ScheduledPost');
 const Settings = require('../database/models/Settings');
 const Parser = require('rss-parser');
 const botState = require('../bot/botState');
@@ -269,6 +270,49 @@ router.post('/admin/trigger-quote', requireAdmin, async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
+});
+
+// ── Admin: scheduled posts ─────────────────────────────────────────────────
+
+// GET /api/admin/scheduled
+router.get('/admin/scheduled', requireAdmin, async (req, res) => {
+  if (!(await checkAdminRole(req.tgUserId))) return res.status(403).json({ error: 'forbidden' });
+  try {
+    const posts = await ScheduledPost.findAll({
+      where: { isPosted: false },
+      order: [['scheduledAt', 'ASC']],
+    });
+    res.json(posts);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/admin/scheduled
+router.post('/admin/scheduled', express.json(), requireAdmin, async (req, res) => {
+  if (!(await checkAdminRole(req.tgUserId))) return res.status(403).json({ error: 'forbidden' });
+  const { content, mediaType, channelId, scheduledAt } = req.body;
+  if (!scheduledAt) return res.status(400).json({ error: 'scheduledAt required' });
+  if (mediaType !== 'quote' && !content) return res.status(400).json({ error: 'content required' });
+  try {
+    const post = await ScheduledPost.create({
+      content: content || null,
+      mediaType: mediaType || 'text',
+      channelId: channelId || null,
+      scheduledAt: new Date(scheduledAt),
+      createdBy: req.tgUserId,
+    });
+    res.json(post);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// DELETE /api/admin/scheduled/:id
+router.delete('/admin/scheduled/:id', express.json(), requireAdmin, async (req, res) => {
+  if (!(await checkAdminRole(req.tgUserId))) return res.status(403).json({ error: 'forbidden' });
+  try {
+    const post = await ScheduledPost.findByPk(req.params.id);
+    if (!post) return res.status(404).json({ error: 'not found' });
+    await post.destroy();
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // ── Admin: settings ──────────────────────────────────────────────────────────

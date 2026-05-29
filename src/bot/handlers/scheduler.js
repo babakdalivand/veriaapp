@@ -35,7 +35,38 @@ function startScheduler(bot) {
   // 05:00 UTC = 08:30 Tehran (IRST UTC+3:30)
   cron.schedule('0 5 * * *', () => postDailyQuote(bot), { timezone: 'UTC' });
   schedulerState.triggerQuote = () => postDailyQuote(bot);
+  cron.schedule('* * * * *', () => checkScheduledPosts(bot));
   console.log('[Scheduler] Quote scheduler started (05:00 UTC daily)');
 }
 
-module.exports = { startScheduler, postDailyQuote };
+async function checkScheduledPosts(bot) {
+  try {
+    const ScheduledPost = require('../../database/models/ScheduledPost');
+    const Settings = require('../../database/models/Settings');
+    const now = new Date();
+    const pending = await ScheduledPost.findAll({
+      where: { isPosted: false, scheduledAt: { [require('sequelize').Op.lte]: now } },
+    });
+    for (const post of pending) {
+      try {
+        const settings = await Settings.getSettings();
+        const channelId = post.channelId || settings.mainChannelId;
+        if (!channelId) { await post.update({ isPosted: true, postedAt: now }); continue; }
+
+        if (post.mediaType === 'quote') {
+          await postDailyQuote(bot);
+        } else {
+          await bot.telegram.sendMessage(String(channelId), post.content, { parse_mode: 'Markdown' });
+        }
+        await post.update({ isPosted: true, postedAt: now });
+        console.log(`[Scheduler] Scheduled post ${post.id} sent`);
+      } catch (e) {
+        console.error(`[Scheduler] Scheduled post ${post.id} error:`, e.message);
+      }
+    }
+  } catch (e) {
+    console.error('[Scheduler] checkScheduledPosts error:', e.message);
+  }
+}
+
+module.exports = { startScheduler, postDailyQuote, checkScheduledPosts };

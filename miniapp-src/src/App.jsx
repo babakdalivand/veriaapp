@@ -32,6 +32,17 @@ export default function App() {
     if (page === 'admin' && !isAdmin && !meLoading) setPage('dashboard')
   }, [isAdmin, meLoading, page])
 
+  useEffect(() => {
+    function handleFocusIn(e) {
+      const el = e.target
+      if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+        setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), 350)
+      }
+    }
+    document.addEventListener('focusin', handleFocusIn)
+    return () => document.removeEventListener('focusin', handleFocusIn)
+  }, [])
+
   const Page = PAGES[page] ?? Dashboard
 
   return (

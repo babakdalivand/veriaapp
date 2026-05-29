@@ -1,37 +1,28 @@
 /* ── VeriaApp Premium Dark Theme ─────────────────────────── */
 :root {
-  /* Backgrounds */
-  --bg:        #0d0d1c;
-  --bg-page:   #10101f;
-  --bg-card:   #17172e;
-  --bg-card2:  #1d1d38;
-  --bg-input:  #141428;
-
-  /* Accents */
-  --blue:      #4d9bff;
-  --blue-dim:  rgba(77,155,255,.20);
-  --blue-glow: 0 0 22px rgba(77,155,255,.25);
+  --bg:        #1c1c2e;
+  --bg-page:   #1f1f35;
+  --bg-card:   #272744;
+  --bg-card2:  #2e2e4e;
+  --bg-input:  #23233a;
+  --blue:      #5aa0ff;
+  --blue-dim:  rgba(90,160,255,.22);
+  --blue-glow: 0 0 22px rgba(90,160,255,.28);
   --gold:      #d4aa35;
-  --gold-dim:  rgba(212,170,53,.20);
-  --gold-glow: 0 0 22px rgba(212,170,53,.22);
+  --gold-dim:  rgba(212,170,53,.22);
+  --gold-glow: 0 0 22px rgba(212,170,53,.25);
   --green:     #4ec760;
   --red:       #ff6b6b;
-
-  /* Text */
-  --t1: #f0f0fc;
-  --t2: #aaaacc;
-  --t3: #7878a8;
-
-  /* Borders */
-  --b1: rgba(255,255,255,.10);
-  --b2: rgba(255,255,255,.16);
-  --b-blue: rgba(61,139,255,.3);
-  --b-gold: rgba(201,160,42,.3);
-
-  /* Misc */
+  --t1: #f2f2ff;
+  --t2: #c0c0e0;
+  --t3: #9090c0;
+  --b1: rgba(255,255,255,.13);
+  --b2: rgba(255,255,255,.20);
+  --b-blue: rgba(90,160,255,.35);
+  --b-gold: rgba(212,170,53,.35);
   --r:  14px;
   --r2: 20px;
-  --shadow: 0 6px 28px rgba(0,0,0,.55);
+  --shadow: 0 6px 28px rgba(0,0,0,.50);
   --transition: 200ms cubic-bezier(.4,0,.2,1);
 }
 

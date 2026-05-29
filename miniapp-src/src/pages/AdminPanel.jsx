@@ -2,11 +2,12 @@ import { useState, useEffect, useCallback } from 'react'
 import './AdminPanel.css'
 
 const TABS = [
-  { id: 'settings', label: '⚙️ تنظیمات' },
-  { id: 'keywords', label: '🔤 کلمات' },
-  { id: 'commands', label: '🤖 دستورات' },
-  { id: 'quotes',   label: '💬 نقل‌قول' },
-  { id: 'users',    label: '👥 کاربران' },
+  { id: 'settings',  label: '⚙️ تنظیمات' },
+  { id: 'keywords',  label: '🔤 کلمات' },
+  { id: 'commands',  label: '🤖 دستورات' },
+  { id: 'quotes',    label: '💬 نقل‌قول' },
+  { id: 'scheduled', label: '📅 زمان‌بندی' },
+  { id: 'users',     label: '👥 کاربران' },
 ]
 
 export default function AdminPanel({ me }) {
@@ -35,6 +36,7 @@ export default function AdminPanel({ me }) {
         {tab === 'keywords' && <KeywordsTab qs={qs} initData={initData} />}
         {tab === 'commands' && <CommandsTab qs={qs} initData={initData} />}
         {tab === 'quotes'   && <QuotesTab qs={qs} initData={initData} />}
+        {tab === 'scheduled' && <ScheduledTab qs={qs} initData={initData} />}
         {tab === 'users'    && <UsersTab qs={qs} initData={initData} />}
       </div>
       <div style={{ height: 80 }} />
@@ -177,6 +179,14 @@ function SettingsTab({ qs, initData }) {
       <div className="card">
         <div style={{ padding: '12px 16px 4px' }}>
           <div className="ap-setting-sub" style={{ marginBottom: 8 }}>نقل‌قول روزانه و پست‌های ادمین به این کانال ارسال می‌شوند</div>
+          {s.mainChannelId && (
+            <div style={{ padding: '8px 0 2px', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: '.72rem', color: 'var(--t3)' }}>فعلی:</span>
+              <div className="ap-kw-chip" style={{ background: 'rgba(90,160,255,.12)', borderColor: 'rgba(90,160,255,.3)' }}>
+                <span style={{ direction: 'ltr', color: 'var(--blue)', fontSize: '.75rem' }}>{s.mainChannelId}</span>
+              </div>
+            </div>
+          )}
           <input className="ap-input" value={s.mainChannelId || ''} placeholder="@channel_username یا -100xxxxxxxxxx"
             onChange={e => setS(p => ({ ...p, mainChannelId: e.target.value }))} dir="ltr" />
         </div>
@@ -519,6 +529,127 @@ function QuotesTab({ qs, initData }) {
             <div className="ap-modal-actions">
               <button className="ap-btn-primary" onClick={saveForm} disabled={saving}>{saving?'ذخیره...':'ذخیره'}</button>
               <button className="ap-btn-cancel" onClick={() => setModal(null)}>لغو</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ── Scheduled Posts ── */
+function ScheduledTab({ qs, initData }) {
+  const [posts, setPosts] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [modal, setModal] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [form, setForm] = useState({ content: '', mediaType: 'text', channelId: '', scheduledAt: '' })
+
+  function defaultScheduledAt() {
+    const d = new Date(Date.now() + 60 * 60 * 1000)
+    const pad = n => String(n).padStart(2,'0')
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  }
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    const r = await fetch(`/api/admin/scheduled${qs}`)
+    if (r.ok) setPosts(await r.json())
+    setLoading(false)
+  }, [qs])
+
+  useEffect(() => { load() }, [load])
+
+  async function saveForm() {
+    if (!form.scheduledAt) return
+    if (form.mediaType === 'text' && !form.content.trim()) return
+    setSaving(true)
+    const r = await fetch(`/api/admin/scheduled${qs}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...form, scheduledAt: new Date(form.scheduledAt).toISOString(), initData }),
+    })
+    if (r.ok) { setModal(false); await load() }
+    setSaving(false)
+  }
+
+  async function deletePost(id) {
+    await fetch(`/api/admin/scheduled/${id}${qs}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ initData }),
+    })
+    setPosts(p => p.filter(x => x.id !== id))
+  }
+
+  function formatDate(d) {
+    const dt = new Date(d)
+    return dt.toLocaleString('fa-IR', { dateStyle: 'short', timeStyle: 'short' })
+  }
+
+  return (
+    <div>
+      <div style={{ padding: '4px 16px 0' }}>
+        <button className="ap-save-btn" style={{ width: '100%', margin: 0 }}
+          onClick={() => { setForm({ content: '', mediaType: 'text', channelId: '', scheduledAt: defaultScheduledAt() }); setModal(true) }}>
+          + زمان‌بندی پست جدید
+        </button>
+      </div>
+      <p className="sec-title">پست‌های زمان‌بندی شده ({posts.length})</p>
+      {loading ? <div className="ap-empty">در حال بارگذاری...</div>
+        : posts.length === 0 ? <p className="ap-empty">پستی در صف نیست</p>
+        : posts.map(p => (
+          <div key={p.id} className="card" style={{ margin: '0 16px 10px', padding: '12px 14px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '.7rem', color: 'var(--gold)', marginBottom: 4 }}>
+                  📅 {formatDate(p.scheduledAt)}
+                  {p.channelId && <span style={{ color: 'var(--t3)', marginRight: 8 }}> → {p.channelId}</span>}
+                </div>
+                {p.mediaType === 'quote'
+                  ? <div style={{ fontSize: '.8rem', color: 'var(--blue)' }}>🎲 نقل‌قول تصادفی</div>
+                  : <div style={{ fontSize: '.8rem', color: 'var(--t1)', direction: 'rtl' }}>{p.content?.slice(0, 100)}{p.content?.length > 100 ? '...' : ''}</div>
+                }
+              </div>
+              <button className="ap-kw-del" style={{ fontSize: '1rem', padding: '2px 6px' }} onClick={() => deletePost(p.id)}>✕</button>
+            </div>
+          </div>
+        ))
+      }
+
+      {modal && (
+        <div className="ap-modal-overlay" onClick={e => e.target === e.currentTarget && setModal(false)}>
+          <div className="ap-modal">
+            <div className="ap-modal-title">📅 پست جدید</div>
+            <div className="ap-field">
+              <label>نوع محتوا</label>
+              <select style={{ background: 'var(--bg-input)', border: '1px solid var(--b1)', borderRadius: 8, padding: '10px 12px', color: 'var(--t1)', fontFamily: 'inherit', fontSize: '.83rem' }}
+                value={form.mediaType} onChange={e => setForm(p => ({ ...p, mediaType: e.target.value }))}>
+                <option value="text">📝 متن</option>
+                <option value="quote">💬 نقل‌قول تصادفی</option>
+              </select>
+            </div>
+            {form.mediaType === 'text' && (
+              <div className="ap-field">
+                <label>متن پست *</label>
+                <textarea dir="rtl" rows={4} value={form.content}
+                  onChange={e => setForm(p => ({ ...p, content: e.target.value }))}
+                  placeholder="متن پستی که به کانال ارسال می‌شود..." />
+              </div>
+            )}
+            <div className="ap-field">
+              <label>آیدی کانال (اختیاری — پیش‌فرض: کانال اصلی)</label>
+              <input dir="ltr" value={form.channelId} placeholder="@channel یا -100xxxxxxxxxx"
+                onChange={e => setForm(p => ({ ...p, channelId: e.target.value }))} />
+            </div>
+            <div className="ap-field">
+              <label>زمان ارسال *</label>
+              <input type="datetime-local" value={form.scheduledAt}
+                onChange={e => setForm(p => ({ ...p, scheduledAt: e.target.value }))} />
+            </div>
+            <div className="ap-modal-actions">
+              <button className="ap-btn-primary" onClick={saveForm} disabled={saving}>{saving ? 'ذخیره...' : 'زمان‌بندی'}</button>
+              <button className="ap-btn-cancel" onClick={() => setModal(false)}>لغو</button>
             </div>
           </div>
         </div>
