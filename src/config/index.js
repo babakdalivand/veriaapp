@@ -1,7 +1,11 @@
 module.exports = {
   BOT_TOKEN: process.env.BOT_TOKEN,
   OWNER_ID: parseInt(process.env.OWNER_ID),
-  MONGODB_URI: process.env.MONGODB_URI,
+  DB_HOST: process.env.DB_HOST || 'localhost',
+  DB_PORT: parseInt(process.env.DB_PORT) || 3306,
+  DB_NAME: process.env.DB_NAME,
+  DB_USER: process.env.DB_USER,
+  DB_PASS: process.env.DB_PASS,
   WEBHOOK_DOMAIN: process.env.WEBHOOK_DOMAIN,
   WEBHOOK_SECRET: process.env.WEBHOOK_SECRET || 'arcavox_secret',
   PORT: process.env.PORT || 3000,

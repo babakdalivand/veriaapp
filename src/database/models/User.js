@@ -1,15 +1,15 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const { sequelize } = require('../connection');
 
-const userSchema = new mongoose.Schema({
-  telegramId: { type: Number, required: true, unique: true },
-  username: String,
-  firstName: String,
-  lastName: String,
-  role: { type: String, enum: ['user', 'vip', 'admin', 'owner'], default: 'user' },
-  isBlocked: { type: Boolean, default: false },
-  warnCount: { type: Number, default: 0 },
-  joinedAt: { type: Date, default: Date.now },
-  lastSeen: { type: Date, default: Date.now },
+const User = sequelize.define('User', {
+  telegramId: { type: DataTypes.BIGINT, allowNull: false, unique: true },
+  username: { type: DataTypes.STRING, allowNull: true },
+  firstName: { type: DataTypes.STRING, allowNull: true },
+  lastName: { type: DataTypes.STRING, allowNull: true },
+  role: { type: DataTypes.ENUM('user', 'vip', 'admin', 'owner'), defaultValue: 'user' },
+  isBlocked: { type: DataTypes.BOOLEAN, defaultValue: false },
+  warnCount: { type: DataTypes.INTEGER, defaultValue: 0 },
+  lastSeen: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
 });
 
-module.exports = mongoose.model('User', userSchema);
+module.exports = User;

@@ -6,18 +6,14 @@ async function saveUser(ctx, next) {
   const tg = ctx.from;
   if (!tg) return next();
 
-  await User.findOneAndUpdate(
-    { telegramId: tg.id },
-    {
-      telegramId: tg.id,
-      username: tg.username,
-      firstName: tg.first_name,
-      lastName: tg.last_name,
-      lastSeen: new Date(),
-      ...(tg.id === OWNER_ID ? { role: 'owner' } : {}),
-    },
-    { upsert: true, new: true }
-  );
+  await User.upsert({
+    telegramId: tg.id,
+    username: tg.username || null,
+    firstName: tg.first_name || null,
+    lastName: tg.last_name || null,
+    lastSeen: new Date(),
+    ...(tg.id === OWNER_ID ? { role: 'owner' } : {}),
+  });
 
   return next();
 }
@@ -28,7 +24,7 @@ async function isOwner(ctx) {
 
 async function isAdmin(ctx) {
   if (await isOwner(ctx)) return true;
-  const admin = await Admin.findOne({ telegramId: ctx.from?.id });
+  const admin = await Admin.findOne({ where: { telegramId: ctx.from?.id } });
   return !!admin;
 }
 

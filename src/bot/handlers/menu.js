@@ -1,12 +1,12 @@
-const { requireAdmin, requireOwner, isOwner } = require('../middleware/auth');
+const { isOwner } = require('../middleware/auth');
 const Admin = require('../../database/models/Admin');
 const User = require('../../database/models/User');
-const { ownerKeyboard, adminKeyboard } = require('../keyboards/mainMenu');
+const { adminKeyboard } = require('../keyboards/mainMenu');
 
 async function statsHandler(ctx) {
-  const totalUsers = await User.countDocuments();
-  const totalAdmins = await Admin.countDocuments();
-  const blocked = await User.countDocuments({ isBlocked: true });
+  const totalUsers = await User.count();
+  const totalAdmins = await Admin.count();
+  const blocked = await User.count({ where: { isBlocked: true } });
 
   return ctx.reply(
     `📊 *آمار و تحلیل*\n\n` +
@@ -22,7 +22,7 @@ async function adminManageHandler(ctx) {
     return ctx.reply('⛔️ این بخش فقط برای مالک بات است.');
   }
 
-  const admins = await Admin.find();
+  const admins = await Admin.findAll();
   if (admins.length === 0) {
     return ctx.reply(
       `👥 *مدیریت ادمین‌ها*\n\nهیچ ادمینی ثبت نشده.\n\n` +
@@ -44,21 +44,20 @@ async function addAdminCommand(ctx) {
 
   const args = ctx.message.text.split(' ');
   const targetId = parseInt(args[1]);
-
   if (!targetId) return ctx.reply('❌ استفاده: /addadmin [user_id]');
 
-  const existing = await Admin.findOne({ telegramId: targetId });
+  const existing = await Admin.findOne({ where: { telegramId: targetId } });
   if (existing) return ctx.reply('⚠️ این کاربر قبلاً ادمین است.');
 
-  const targetUser = await User.findOne({ telegramId: targetId });
+  const targetUser = await User.findOne({ where: { telegramId: targetId } });
   await Admin.create({
     telegramId: targetId,
-    username: targetUser?.username,
-    firstName: targetUser?.firstName,
+    username: targetUser?.username || null,
+    firstName: targetUser?.firstName || null,
     addedBy: ctx.from.id,
   });
 
-  await User.findOneAndUpdate({ telegramId: targetId }, { role: 'admin' });
+  await User.update({ role: 'admin' }, { where: { telegramId: targetId } });
 
   try {
     await ctx.telegram.sendMessage(
@@ -76,13 +75,12 @@ async function removeAdminCommand(ctx) {
 
   const args = ctx.message.text.split(' ');
   const targetId = parseInt(args[1]);
-
   if (!targetId) return ctx.reply('❌ استفاده: /removeadmin [user_id]');
 
-  const result = await Admin.deleteOne({ telegramId: targetId });
-  if (result.deletedCount === 0) return ctx.reply('⚠️ این کاربر ادمین نیست.');
+  const deleted = await Admin.destroy({ where: { telegramId: targetId } });
+  if (!deleted) return ctx.reply('⚠️ این کاربر ادمین نیست.');
 
-  await User.findOneAndUpdate({ telegramId: targetId }, { role: 'user' });
+  await User.update({ role: 'user' }, { where: { telegramId: targetId } });
 
   return ctx.reply(`✅ ادمین \`${targetId}\` حذف شد.`, { parse_mode: 'Markdown' });
 }

@@ -1,21 +1,21 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const { sequelize } = require('../connection');
 
-const settingsSchema = new mongoose.Schema({
-  singleton: { type: Boolean, default: true, unique: true },
-  botEnabled: { type: Boolean, default: true },
-  mainGroupId: { type: Number, default: null },
-  mainChannelId: { type: Number, default: null },
-  welcomeMessage: { type: String, default: 'به veriaapp خوش آمدید! 🎙️' },
-  captchaEnabled: { type: Boolean, default: true },
-  antiSpamEnabled: { type: Boolean, default: true },
-  antiLinkEnabled: { type: Boolean, default: true },
-  warnLimit: { type: Number, default: 3 },
-  updatedAt: { type: Date, default: Date.now },
+const Settings = sequelize.define('Settings', {
+  botEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
+  mainGroupId: { type: DataTypes.BIGINT, allowNull: true },
+  mainChannelId: { type: DataTypes.BIGINT, allowNull: true },
+  welcomeMessage: { type: DataTypes.TEXT, defaultValue: 'به veriaapp خوش آمدید! 🎙️' },
+  captchaEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
+  antiSpamEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
+  antiLinkEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
+  warnLimit: { type: DataTypes.INTEGER, defaultValue: 3 },
 });
 
-settingsSchema.pre('save', function (next) {
-  this.updatedAt = new Date();
-  next();
-});
+// helper to get or create the single settings row
+Settings.getSettings = async () => {
+  const [settings] = await Settings.findOrCreate({ where: { id: 1 } });
+  return settings;
+};
 
-module.exports = mongoose.model('Settings', settingsSchema);
+module.exports = Settings;

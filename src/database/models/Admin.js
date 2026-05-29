@@ -1,17 +1,15 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const { sequelize } = require('../connection');
 
-const adminSchema = new mongoose.Schema({
-  telegramId: { type: Number, required: true, unique: true },
-  username: String,
-  firstName: String,
-  addedBy: { type: Number, required: true },
-  addedAt: { type: Date, default: Date.now },
-  permissions: {
-    manageGroup: { type: Boolean, default: true },
-    manageContent: { type: Boolean, default: true },
-    viewStats: { type: Boolean, default: true },
-    manageAdmins: { type: Boolean, default: false },
-  },
+const Admin = sequelize.define('Admin', {
+  telegramId: { type: DataTypes.BIGINT, allowNull: false, unique: true },
+  username: { type: DataTypes.STRING, allowNull: true },
+  firstName: { type: DataTypes.STRING, allowNull: true },
+  addedBy: { type: DataTypes.BIGINT, allowNull: false },
+  manageGroup: { type: DataTypes.BOOLEAN, defaultValue: true },
+  manageContent: { type: DataTypes.BOOLEAN, defaultValue: true },
+  viewStats: { type: DataTypes.BOOLEAN, defaultValue: true },
+  manageAdmins: { type: DataTypes.BOOLEAN, defaultValue: false },
 });
 
-module.exports = mongoose.model('Admin', adminSchema);
+module.exports = Admin;
