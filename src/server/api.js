@@ -13,6 +13,7 @@ const Parser = require('rss-parser');
 const botState = require('../bot/botState');
 const schedulerState = require('../bot/schedulerState');
 const { BOT_TOKEN } = require('../config');
+const { detectPlatform, PLATFORM_INFO, callCobalt, downloadToChannel, downloadToUser } = require('../bot/handlers/downloader');
 
 const router = Router();
 
@@ -445,6 +446,87 @@ router.put('/admin/users/:telegramId', express.json(), requireAdmin, async (req,
     });
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── Download API ─────────────────────────────────────────────────────────────
+
+// GET /api/download/detect?url=...  — detect platform (public)
+router.get('/download/detect', (req, res) => {
+  const { url } = req.query;
+  if (!url) return res.status(400).json({ error: 'url required' });
+  const platform = detectPlatform(url);
+  if (!platform) return res.json({ platform: null });
+  const info = PLATFORM_INFO[platform] || { name: platform, emoji: '📥' };
+  res.json({ platform, name: info.name, emoji: info.emoji });
+});
+
+// POST /api/download/to-me  — download and send to user's DM via bot
+// Body: { url, mode: 'video'|'audio', initData }
+router.post('/download/to-me', express.json(), requireAdmin, async (req, res) => {
+  const { url, mode } = req.body;
+  if (!url) return res.status(400).json({ error: 'url required' });
+
+  const bot = botState.bot;
+  if (!bot) return res.status(503).json({ error: 'Bot not ready' });
+
+  const platform = detectPlatform(url);
+  if (!platform) return res.status(400).json({ error: 'unsupported platform' });
+
+  const audioOnly = mode === 'audio';
+  try {
+    const result = await downloadToUser(bot, url, req.tgUserId, audioOnly);
+    res.json({ ok: true, filename: result.filename });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/download/to-channel  — download and post to channel (admin only)
+// Body: { url, mode: 'video'|'audio', channelId?, initData }
+router.post('/download/to-channel', express.json(), requireAdmin, async (req, res) => {
+  if (!(await checkAdminRole(req.tgUserId))) return res.status(403).json({ error: 'forbidden' });
+  const { url, mode, channelId: bodyChannel } = req.body;
+  if (!url) return res.status(400).json({ error: 'url required' });
+
+  const bot = botState.bot;
+  if (!bot) return res.status(503).json({ error: 'Bot not ready' });
+
+  const platform = detectPlatform(url);
+  if (!platform) return res.status(400).json({ error: 'unsupported platform' });
+
+  const settings = await Settings.getSettings();
+  const channelId = bodyChannel || settings.mainChannelId;
+  if (!channelId) return res.status(400).json({ error: 'No channel configured' });
+
+  const audioOnly = mode === 'audio';
+  try {
+    const result = await downloadToChannel(bot, url, channelId, audioOnly);
+    res.json({ ok: true, filename: result.filename });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/download/preview  — get download info without downloading (public-ish)
+// Body: { url }
+router.post('/download/preview', express.json(), requireAdmin, async (req, res) => {
+  const { url } = req.body;
+  if (!url) return res.status(400).json({ error: 'url required' });
+  const platform = detectPlatform(url);
+  if (!platform) return res.status(400).json({ error: 'unsupported platform' });
+  try {
+    const result = await callCobalt(url, false);
+    if (result.status === 'error') return res.status(400).json({ error: result.error?.code || 'cobalt error' });
+    res.json({
+      status: result.status,
+      url: result.url,
+      filename: result.filename,
+      platform,
+      picker: result.picker || null,
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 module.exports = router;

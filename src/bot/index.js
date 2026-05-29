@@ -34,6 +34,7 @@ const { broadcastMenuHandler, handleBroadcastMessage, isWaitingBroadcast } = req
 const { referralHandler } = require('./handlers/referral');
 const { generateTweetImage, THEME_KEYS } = require('./handlers/graphics');
 const { isOwner, isAdmin } = require('./middleware/auth');
+const { handleMediaLink, downloadCallback } = require('./handlers/downloader');
 
 function createBot() {
   const bot = new Telegraf(BOT_TOKEN);
@@ -181,6 +182,10 @@ function createBot() {
     });
   });
 
+  // Auto-detect media links (Instagram, TikTok, SoundCloud, Vimeo, Dailymotion, Pinterest)
+  const MEDIA_URL_RE = /https?:\/\/(www\.)?(instagram\.com|tiktok\.com|vm\.tiktok\.com|soundcloud\.com|vimeo\.com|dailymotion\.com|dai\.ly|pinterest\.com|pin\.it)[^\s]*/i;
+  bot.hears(MEDIA_URL_RE, handleMediaLink);
+
   // Custom slash commands from DB
   bot.use(async (ctx, next) => {
     const text = ctx.message?.text;
@@ -207,6 +212,7 @@ function createBot() {
   bot.command('setkeywords', setKeywordsCommand);
 
   // Inline keyboard callbacks
+  bot.action(/^dl:/, downloadCallback);
   bot.action(/^yt:/, youtubeDownloadCallback);
   bot.action(/^tw:/, twitterCallback);
   bot.action(/^ai:pick:/, aiPickCallback);

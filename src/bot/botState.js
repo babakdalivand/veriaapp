@@ -1,1 +1,1 @@
-module.exports = { username: null };
+module.exports = { username: null, bot: null };

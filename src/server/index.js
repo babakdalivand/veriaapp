@@ -19,6 +19,7 @@ async function startServer() {
   const botState = require('../bot/botState');
   const { startScheduler } = require('../bot/handlers/scheduler');
   bot.telegram.getMe().then(info => { botState.username = info.username; }).catch(() => {});
+  botState.bot = bot;
   startScheduler(bot);
 
   // Register bot commands in Telegram menu

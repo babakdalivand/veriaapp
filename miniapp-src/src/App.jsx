@@ -6,6 +6,7 @@ import Twitter    from './pages/Twitter.jsx'
 import Quotes     from './pages/Quotes.jsx'
 import Profile    from './pages/Profile.jsx'
 import AdminPanel from './pages/AdminPanel.jsx'
+import Download   from './pages/Download.jsx'
 import BottomNav  from './BottomNav.jsx'
 
 const PAGES = {
@@ -15,6 +16,7 @@ const PAGES = {
   quotes: Quotes,
   profile: Profile,
   admin: AdminPanel,
+  download: Download,
 }
 
 export default function App() {

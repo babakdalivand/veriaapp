@@ -2,8 +2,8 @@ import './BottomNav.css'
 
 const TABS = [
   { id: 'dashboard', icon: '⊞',  label: 'خانه'    },
+  { id: 'download',  icon: '⬇',  label: 'دانلود'  },
   { id: 'youtube',   icon: '▶',  label: 'یوتیوب'  },
-  { id: 'twitter',   icon: '✦',  label: 'توییتر'  },
   { id: 'quotes',    icon: '❝',  label: 'نقل‌قول' },
   { id: 'profile',   icon: '◉',  label: 'پروفایل' },
 ]
