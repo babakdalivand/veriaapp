@@ -1,13 +1,38 @@
 const { Markup } = require('telegraf');
-const ytdl = require('@distube/ytdl-core');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const https = require('https');
+const http = require('http');
+const vm = require('vm');
 
-// In-memory state: userId -> 'waiting_url'
+// Patch youtubei.js to use Node.js vm as JS evaluator for URL deciphering
+function patchYtjsEval() {
+  try {
+    const { Platform } = require('youtubei.js/dist/src/utils/Utils');
+    if (Platform?.shim && Platform.shim.eval?.toString().includes('throw')) {
+      Platform.shim.eval = (data, env) => {
+        const code = typeof data === 'object' ? data.output : String(data);
+        return vm.runInNewContext('(function(){\n' + code + '\n})()', vm.createContext({ ...env, globalThis: {} }));
+      };
+    }
+  } catch (_) {}
+}
+
+const { Innertube } = require('youtubei.js');
+patchYtjsEval();
+
 const userState = new Map();
-
 const MAX_SIZE_MB = 45;
+
+let ytInstance = null;
+async function getYT() {
+  if (!ytInstance) {
+    ytInstance = await Innertube.create({ cache: false, generate_session_locally: true });
+    patchYtjsEval();
+  }
+  return ytInstance;
+}
 
 function formatDuration(seconds) {
   const m = Math.floor(seconds / 60);
@@ -18,6 +43,34 @@ function formatDuration(seconds) {
 function formatSize(bytes) {
   if (!bytes) return '?';
   return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+}
+
+function extractVideoId(url) {
+  const m = url.match(/(?:v=|youtu\.be\/|shorts\/)([a-zA-Z0-9_-]{11})/);
+  return m ? m[1] : null;
+}
+
+function isYoutubeUrl(text) {
+  return /(?:youtube\.com\/watch|youtu\.be\/|youtube\.com\/shorts\/)/.test(text);
+}
+
+// Returns only formats that can actually be deciphered
+async function getWorkableFormats(info, player) {
+  const muxed = info.streaming_data?.formats || [];
+  const results = [];
+
+  for (const f of muxed) {
+    try {
+      const url = await f.decipher(player);
+      if (url && typeof url === 'string' && url.startsWith('http')) {
+        results.push({ format: f, url, height: f.height || 0 });
+      }
+    } catch (_) {}
+  }
+
+  // Sort by quality descending
+  results.sort((a, b) => b.height - a.height);
+  return results;
 }
 
 async function youtubeMenuHandler(ctx) {
@@ -45,18 +98,23 @@ async function handleYoutubeUrl(ctx) {
     return ctx.reply('بازگشت به منو.', kb);
   }
 
-  if (!ytdl.validateURL(text)) {
+  if (!isYoutubeUrl(text)) {
     return ctx.reply('❌ لینک معتبر یوتیوب نیست. دوباره امتحان کن یا ❌ انصراف بزن.');
   }
 
-  userState.delete(userId);
+  const videoId = extractVideoId(text);
+  if (!videoId) {
+    return ctx.reply('❌ نتوانستم شناسه ویدیو را پیدا کنم.');
+  }
 
+  userState.delete(userId);
   const loadingMsg = await ctx.reply('⏳ در حال دریافت اطلاعات ویدیو...');
 
   try {
-    const info = await ytdl.getInfo(text);
-    const details = info.videoDetails;
-    const duration = parseInt(details.lengthSeconds);
+    const innertube = await getYT();
+    const info = await innertube.getInfo(videoId);
+    const details = info.basic_info;
+    const duration = details.duration || 0;
 
     if (duration > 600) {
       await ctx.telegram.editMessageText(ctx.chat.id, loadingMsg.message_id, null,
@@ -64,117 +122,108 @@ async function handleYoutubeUrl(ctx) {
       return;
     }
 
-    // Find best audio format
-    const audioFormats = ytdl.filterFormats(info.formats, 'audioonly');
-    const audioFormat = audioFormats.sort((a, b) => (b.audioBitrate || 0) - (a.audioBitrate || 0))[0];
+    const workable = await getWorkableFormats(info, innertube.session.player);
 
-    // Find video formats (with audio)
-    const videoFormats = ytdl.filterFormats(info.formats, 'videoandaudio')
-      .filter(f => f.container === 'mp4')
-      .sort((a, b) => (b.height || 0) - (a.height || 0));
-
-    const video360 = videoFormats.find(f => f.height <= 360);
-    const video720 = videoFormats.find(f => f.height <= 720);
-
-    const buttons = [];
-    if (audioFormat) {
-      buttons.push(Markup.button.callback(
-        `🎵 صدا (${audioFormat.audioBitrate || '?'}kbps)`,
-        `yt:audio:${encodeURIComponent(text)}`
-      ));
-    }
-    if (video360) {
-      buttons.push(Markup.button.callback(
-        `🎬 ویدیو 360p`,
-        `yt:video360:${encodeURIComponent(text)}`
-      ));
-    }
-    if (video720) {
-      buttons.push(Markup.button.callback(
-        `🎬 ویدیو 720p`,
-        `yt:video720:${encodeURIComponent(text)}`
-      ));
+    if (workable.length === 0) {
+      await ctx.telegram.editMessageText(ctx.chat.id, loadingMsg.message_id, null,
+        '❌ هیچ فرمت قابل دانلودی پیدا نشد.');
+      return;
     }
 
-    const thumb = details.thumbnails?.[details.thumbnails.length - 1]?.url || '';
+    const buttons = workable.map(({ format, height }) =>
+      Markup.button.callback(
+        `🎬 ویدیو ${height}p`,
+        `yt:${height}:${videoId}`
+      )
+    );
+
+    const title = details.title || 'ویدیو';
+    const views = details.view_count ? parseInt(details.view_count).toLocaleString() : '?';
 
     await ctx.telegram.editMessageText(
       ctx.chat.id, loadingMsg.message_id, null,
-      `🎬 *${details.title.slice(0, 100)}*\n\n` +
+      `🎬 *${title.slice(0, 100)}*\n\n` +
       `⏱ مدت: ${formatDuration(duration)}\n` +
-      `👁 بازدید: ${parseInt(details.viewCount).toLocaleString()}\n\n` +
-      `فرمت دلخواه را انتخاب کن:`,
+      `👁 بازدید: ${views}\n\n` +
+      `کیفیت دلخواه را انتخاب کن:`,
       {
         parse_mode: 'Markdown',
         ...Markup.inlineKeyboard(buttons.map(b => [b]))
       }
     );
   } catch (e) {
+    console.error('[YT] getInfo error:', e.message);
     await ctx.telegram.editMessageText(ctx.chat.id, loadingMsg.message_id, null,
       `❌ خطا در دریافت اطلاعات: ${e.message.slice(0, 100)}`);
   }
 }
 
+function downloadUrl(url, dest) {
+  return new Promise((resolve, reject) => {
+    const proto = url.startsWith('https') ? https : http;
+    const file = fs.createWriteStream(dest);
+    const req = proto.get(url, { headers: { 'User-Agent': 'Mozilla/5.0' } }, (res) => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        file.close();
+        try { fs.unlinkSync(dest); } catch {}
+        return downloadUrl(res.headers.location, dest).then(resolve).catch(reject);
+      }
+      if (res.statusCode !== 200) {
+        file.close();
+        return reject(new Error(`HTTP ${res.statusCode}`));
+      }
+      res.pipe(file);
+      file.on('finish', () => file.close(resolve));
+    });
+    req.on('error', (e) => { try { fs.unlinkSync(dest); } catch {} reject(e); });
+    file.on('error', (e) => { try { fs.unlinkSync(dest); } catch {} reject(e); });
+  });
+}
+
 async function youtubeDownloadCallback(ctx) {
-  const data = ctx.callbackQuery.data; // yt:audio:URL or yt:video360:URL or yt:video720:URL
+  const data = ctx.callbackQuery.data; // yt:HEIGHT:videoId
   const parts = data.split(':');
-  const type = parts[1];
-  const url = decodeURIComponent(parts.slice(2).join(':'));
+  const targetHeight = parseInt(parts[1]);
+  const videoId = parts[2];
 
   await ctx.answerCbQuery('⏳ در حال دانلود...');
   await ctx.editMessageText('⏳ در حال دانلود... لطفاً صبر کن.');
 
-  const tmpFile = path.join(os.tmpdir(), `yt_${ctx.from.id}_${Date.now()}.${type === 'audio' ? 'mp3' : 'mp4'}`);
+  const tmpFile = path.join(os.tmpdir(), `yt_${ctx.from.id}_${Date.now()}.mp4`);
 
   try {
-    const info = await ytdl.getInfo(url);
-    const title = info.videoDetails.title.replace(/[^\w\s؀-ۿ]/g, '').trim().slice(0, 60);
+    const innertube = await getYT();
+    const info = await innertube.getInfo(videoId);
+    const title = (info.basic_info.title || 'video').replace(/[^\w\s؀-ۿ]/g, '').trim().slice(0, 60);
 
-    let format;
-    if (type === 'audio') {
-      const formats = ytdl.filterFormats(info.formats, 'audioonly');
-      format = formats.sort((a, b) => (b.audioBitrate || 0) - (a.audioBitrate || 0))[0];
-    } else if (type === 'video360') {
-      const formats = ytdl.filterFormats(info.formats, 'videoandaudio').filter(f => f.container === 'mp4');
-      format = formats.filter(f => f.height <= 360).sort((a, b) => (b.height || 0) - (a.height || 0))[0];
-    } else {
-      const formats = ytdl.filterFormats(info.formats, 'videoandaudio').filter(f => f.container === 'mp4');
-      format = formats.filter(f => f.height <= 720).sort((a, b) => (b.height || 0) - (a.height || 0))[0];
-    }
+    const workable = await getWorkableFormats(info, innertube.session.player);
+    const chosen = workable.find(w => w.height === targetHeight) || workable[0];
 
-    if (!format) {
+    if (!chosen) {
       return ctx.editMessageText('❌ فرمت مورد نظر پیدا نشد.');
     }
 
-    if (format.contentLength && parseInt(format.contentLength) > MAX_SIZE_MB * 1024 * 1024) {
-      return ctx.editMessageText(`❌ فایل بیشتر از ${MAX_SIZE_MB}MB است و قابل ارسال نیست.`);
+    const contentLength = chosen.format.content_length ? parseInt(chosen.format.content_length) : null;
+    if (contentLength && contentLength > MAX_SIZE_MB * 1024 * 1024) {
+      return ctx.editMessageText(`❌ فایل ${formatSize(contentLength)} است — بیشتر از حد مجاز تلگرام.`);
     }
 
-    await new Promise((resolve, reject) => {
-      const stream = ytdl.downloadFromInfo(info, { format });
-      const file = fs.createWriteStream(tmpFile);
-      stream.pipe(file);
-      stream.on('error', reject);
-      file.on('finish', resolve);
-      file.on('error', reject);
-    });
+    await downloadUrl(chosen.url, tmpFile);
 
     const stat = fs.statSync(tmpFile);
     if (stat.size > MAX_SIZE_MB * 1024 * 1024) {
       fs.unlinkSync(tmpFile);
-      return ctx.editMessageText(`❌ فایل دانلودشده ${formatSize(stat.size)} است — بیشتر از حد مجاز تلگرام.`);
+      return ctx.editMessageText(`❌ فایل ${formatSize(stat.size)} است — بیشتر از حد مجاز.`);
     }
 
     await ctx.editMessageText('📤 در حال آپلود...');
-
-    if (type === 'audio') {
-      await ctx.replyWithAudio({ source: tmpFile, filename: title + '.mp3' }, { title, caption: `🎵 ${title}` });
-    } else {
-      await ctx.replyWithVideo({ source: tmpFile, filename: title + '.mp4' }, { caption: `🎬 ${title}` });
-    }
-
+    await ctx.replyWithVideo(
+      { source: tmpFile, filename: title + '.mp4' },
+      { caption: `🎬 ${title} (${chosen.height}p)` }
+    );
     await ctx.deleteMessage().catch(() => {});
   } catch (e) {
+    console.error('[YT] download error:', e.message);
     await ctx.editMessageText(`❌ خطا: ${e.message.slice(0, 150)}`).catch(() => {});
   } finally {
     if (fs.existsSync(tmpFile)) fs.unlinkSync(tmpFile);
