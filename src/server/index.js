@@ -33,12 +33,18 @@ async function startServer() {
     console.log('Bot running in polling mode');
   }
 
-  app.listen(PORT, () => {
+  const server = app.listen(PORT, () => {
     console.log(`Server running on port ${PORT} [${NODE_ENV}]`);
   });
 
-  process.once('SIGINT', () => bot.stop('SIGINT'));
-  process.once('SIGTERM', () => bot.stop('SIGTERM'));
+  // Keep Passenger process alive by self-pinging every 4 minutes
+  setInterval(() => {
+    const http = require('http');
+    http.get(`http://127.0.0.1:${PORT}/`, () => {}).on('error', () => {});
+  }, 4 * 60 * 1000);
+
+  process.once('SIGINT', () => { bot.stop('SIGINT'); server.close(); });
+  process.once('SIGTERM', () => { bot.stop('SIGTERM'); server.close(); });
 }
 
 module.exports = { startServer };
