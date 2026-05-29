@@ -28,7 +28,7 @@ async function warnUser(ctx, targetId, groupId, reason, warnedBy) {
 
 async function warnCommand(ctx) {
   if (!ctx.chat || ctx.chat.type === 'private') return;
-  if (!(await isAdmin(ctx)) && !isOwner(ctx)) return;
+  if (!(await isAdmin(ctx)) && !await isOwner(ctx)) return;
 
   const reply = ctx.message.reply_to_message;
   if (!reply) return ctx.reply('⚠️ باید روی یک پیام ریپلای کنی.');
@@ -50,7 +50,7 @@ async function warnCommand(ctx) {
 
 async function unwarnCommand(ctx) {
   if (!ctx.chat || ctx.chat.type === 'private') return;
-  if (!(await isAdmin(ctx)) && !isOwner(ctx)) return;
+  if (!(await isAdmin(ctx)) && !await isOwner(ctx)) return;
 
   const reply = ctx.message.reply_to_message;
   if (!reply) return ctx.reply('⚠️ باید روی یک پیام ریپلای کنی.');
@@ -84,7 +84,7 @@ async function warnsCommand(ctx) {
 
 async function muteCommand(ctx) {
   if (!ctx.chat || ctx.chat.type === 'private') return;
-  if (!(await isAdmin(ctx)) && !isOwner(ctx)) return;
+  if (!(await isAdmin(ctx)) && !await isOwner(ctx)) return;
 
   const reply = ctx.message.reply_to_message;
   if (!reply) return ctx.reply('⚠️ باید روی یک پیام ریپلای کنی.');
@@ -103,7 +103,7 @@ async function muteCommand(ctx) {
 
 async function banCommand(ctx) {
   if (!ctx.chat || ctx.chat.type === 'private') return;
-  if (!(await isAdmin(ctx)) && !isOwner(ctx)) return;
+  if (!(await isAdmin(ctx)) && !await isOwner(ctx)) return;
 
   const reply = ctx.message.reply_to_message;
   if (!reply) return ctx.reply('⚠️ باید روی یک پیام ریپلای کنی.');

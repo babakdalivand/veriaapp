@@ -13,7 +13,7 @@ async function keywordFilterMiddleware(ctx, next) {
   const settings = await Settings.getSettings().catch(() => null);
   if (!settings || !settings.keywords) return next();
 
-  if (isOwner(ctx) || await isAdmin(ctx)) return next();
+  if (await isOwner(ctx) || await isAdmin(ctx)) return next();
 
   const keywordList = settings.keywords
     .split(',')

@@ -13,7 +13,7 @@ async function saveUser(ctx, next) {
     lastName: tg.last_name || null,
     lastSeen: new Date(),
     ...(tg.id === OWNER_ID ? { role: 'owner' } : {}),
-  });
+  }).catch(e => console.error('saveUser error:', e.message));
 
   return next();
 }

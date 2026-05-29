@@ -17,7 +17,7 @@ async function antiLinkMiddleware(ctx, next) {
     const settings = await Settings.getSettings().catch(() => null);
     if (!settings || !settings.antiLinkEnabled) return next();
 
-    if (isOwner(ctx) || await isAdmin(ctx)) return next();
+    if (await isOwner(ctx) || await isAdmin(ctx)) return next();
 
     const text = ctx.message.text || ctx.message.caption || '';
     const hasLink = URL_REGEX.test(text) || TG_INVITE_REGEX.test(text);

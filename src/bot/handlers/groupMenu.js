@@ -3,7 +3,7 @@ const Settings = require('../../database/models/Settings');
 const { isAdmin, isOwner } = require('../middleware/auth');
 
 async function groupMenuHandler(ctx) {
-  if (!isOwner(ctx) && !(await isAdmin(ctx))) return;
+  if (!await isOwner(ctx) && !(await isAdmin(ctx))) return;
 
   const settings = await Settings.getSettings();
   await ctx.reply(
@@ -43,7 +43,7 @@ function buildGroupMenu(settings) {
 }
 
 async function groupMenuCallback(ctx) {
-  if (!isOwner(ctx) && !(await isAdmin(ctx))) return ctx.answerCbQuery('دسترسی ندارید.');
+  if (!await isOwner(ctx) && !(await isAdmin(ctx))) return ctx.answerCbQuery('دسترسی ندارید.');
 
   const data = ctx.callbackQuery.data;
   const settings = await Settings.getSettings();
@@ -74,7 +74,7 @@ async function groupMenuCallback(ctx) {
 
 async function setGroupCommand(ctx) {
   if (!ctx.chat || ctx.chat.type === 'private') return;
-  if (!isOwner(ctx) && !(await isAdmin(ctx))) return;
+  if (!await isOwner(ctx) && !(await isAdmin(ctx))) return;
 
   const settings = await Settings.getSettings();
   settings.mainGroupId = ctx.chat.id;
@@ -84,7 +84,7 @@ async function setGroupCommand(ctx) {
 }
 
 async function setWarnLimitCommand(ctx) {
-  if (!isOwner(ctx)) return;
+  if (!await isOwner(ctx)) return;
   const parts = ctx.message.text.split(' ');
   const limit = parseInt(parts[1]);
   if (!limit || limit < 1 || limit > 10) return ctx.reply('مقدار باید بین ۱ تا ۱۰ باشد.');
@@ -96,7 +96,7 @@ async function setWarnLimitCommand(ctx) {
 }
 
 async function setKeywordsCommand(ctx) {
-  if (!isOwner(ctx)) return;
+  if (!await isOwner(ctx)) return;
   const keywords = ctx.message.text.split(' ').slice(1).join(' ');
   if (!keywords) return ctx.reply('استفاده: /setkeywords کلمه۱,کلمه۲,کلمه۳');
 
