@@ -43,8 +43,8 @@ async function startServer() {
     http.get(`http://127.0.0.1:${PORT}/`, () => {}).on('error', () => {});
   }, 4 * 60 * 1000);
 
-  process.once('SIGINT', () => { bot.stop('SIGINT'); server.close(); });
-  process.once('SIGTERM', () => { bot.stop('SIGTERM'); server.close(); });
+  process.once('SIGINT', () => { try { bot.stop('SIGINT'); } catch {} server.close(); });
+  process.once('SIGTERM', () => { try { bot.stop('SIGTERM'); } catch {} server.close(); });
 }
 
 module.exports = { startServer };
