@@ -155,7 +155,10 @@ function createBot() {
   bot.action(/^captcha:/, captchaCallbackHandler);
 
   bot.catch((err, ctx) => {
-    console.error(`Bot error for ${ctx.updateType}:`, err.message);
+    const user = ctx.from?.id || 'unknown';
+    const text = ctx.message?.text || ctx.callbackQuery?.data || '';
+    console.error(`[BotError] type=${ctx.updateType} user=${user} text="${text.slice(0,60)}" err=${err.message}`);
+    ctx.reply('⚠️ خطایی رخ داد. لطفاً دوباره امتحان کنید.').catch(() => {});
   });
 
   return bot;

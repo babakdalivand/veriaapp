@@ -32,7 +32,10 @@ async function startServer() {
   if (USE_WEBHOOK) {
     const webhookPath = `/webhook/${WEBHOOK_SECRET}`;
 
-    await bot.telegram.setWebhook(`${WEBHOOK_DOMAIN}${webhookPath}`);
+    await bot.telegram.setWebhook(`${WEBHOOK_DOMAIN}${webhookPath}`, {
+      drop_pending_updates: false,
+      max_connections: 40,
+    });
     app.post(webhookPath, (req, res) => {
       res.sendStatus(200);
       bot.handleUpdate(req.body).catch(e => console.error('handleUpdate error:', e.message));
@@ -49,11 +52,11 @@ async function startServer() {
     console.log(`Server running on port ${PORT} [${NODE_ENV}]`);
   });
 
-  // Keep Passenger process alive by self-pinging every 4 minutes
+  // Keep Passenger process alive — ping every 90s so Passenger never idles out
+  const http = require('http');
   setInterval(() => {
-    const http = require('http');
     http.get(`http://127.0.0.1:${PORT}/`, () => {}).on('error', () => {});
-  }, 4 * 60 * 1000);
+  }, 90 * 1000);
 
   process.once('SIGINT', () => { try { bot.stop('SIGINT'); } catch {} server.close(); });
   process.once('SIGTERM', () => { try { bot.stop('SIGTERM'); } catch {} server.close(); });
