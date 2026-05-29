@@ -4,23 +4,9 @@ const path = require('path');
 const os = require('os');
 const https = require('https');
 const http = require('http');
-const vm = require('vm');
 
-// Patch youtubei.js to use Node.js vm as JS evaluator for URL deciphering
-function patchYtjsEval() {
-  try {
-    const { Platform } = require('youtubei.js/dist/src/utils/Utils');
-    if (Platform?.shim && Platform.shim.eval?.toString().includes('throw')) {
-      Platform.shim.eval = (data, env) => {
-        const code = typeof data === 'object' ? data.output : String(data);
-        return vm.runInNewContext('(function(){\n' + code + '\n})()', vm.createContext({ ...env, globalThis: {} }));
-      };
-    }
-  } catch (_) {}
-}
-
+// youtubei.js evaluator is patched via postinstall script (scripts/patch-ytjs.mjs)
 const { Innertube } = require('youtubei.js');
-patchYtjsEval();
 
 const userState = new Map();
 const MAX_SIZE_MB = 45;

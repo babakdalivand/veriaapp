@@ -4,7 +4,8 @@
   "description": "veriaapp - Premium Media Intelligence Ecosystem",
   "main": "app.js",
   "scripts": {
-    "start": "node app.js"
+    "start": "node app.js",
+    "postinstall": "node --input-type=module < scripts/patch-ytjs.mjs || true"
   },
   "dependencies": {
     "@distube/ytdl-core": "^4.16.12",
