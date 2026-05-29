@@ -126,8 +126,16 @@ router.get('/twitter/accounts', async (req, res) => {
 });
 
 // GET /api/tweets?username=IranIntl_Fa  (public, Nitter RSS)
-const rssParser = new Parser({ timeout: 8000, headers: { 'User-Agent': 'Mozilla/5.0' } });
-const NITTER = ['https://nitter.privacydev.net', 'https://nitter.poast.org', 'https://nitter.nl'];
+const rssParser = new Parser({ timeout: 6000, headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1)' } });
+const NITTER = [
+  'https://nitter.poast.org',
+  'https://nitter.privacydev.net',
+  'https://nitter.catsarch.com',
+  'https://nitter.1d4.us',
+  'https://nitter.esmailelbob.xyz',
+  'https://nitter.nl',
+  'https://nitter.unixfox.eu',
+];
 
 router.get('/tweets', async (req, res) => {
   const { username } = req.query;
@@ -146,7 +154,7 @@ router.get('/tweets', async (req, res) => {
       }
     } catch (_) {}
   }
-  res.status(502).json({ error: 'could not fetch tweets' });
+  res.status(502).json({ error: 'nitter_down', message: 'سرویس توییتر موقتاً در دسترس نیست — لطفاً بعداً امتحان کنید' });
 });
 
 // GET /api/quote  (public, today's quote)

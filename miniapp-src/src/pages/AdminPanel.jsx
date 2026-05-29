@@ -59,16 +59,21 @@ function SettingsTab({ qs, initData }) {
   async function save(patch) {
     setSaving(true); setMsg('')
     try {
-      await fetch(`/api/admin/settings${qs}`, {
+      const r = await fetch(`/api/admin/settings${qs}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...patch, initData }),
       })
-      setS(p => ({ ...p, ...patch }))
-      setMsg('✅ ذخیره شد')
-    } catch { setMsg('❌ خطا') }
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}))
+        setMsg(`❌ خطا: ${d.error || r.status}`)
+      } else {
+        setS(p => ({ ...p, ...patch }))
+        setMsg('✅ ذخیره شد')
+      }
+    } catch { setMsg('❌ خطا در اتصال') }
     setSaving(false)
-    setTimeout(() => setMsg(''), 3000)
+    setTimeout(() => setMsg(''), 4000)
   }
 
   async function toggle(key) {
@@ -221,7 +226,7 @@ function SettingsTab({ qs, initData }) {
               ))}
             </div>
           ) : (
-            <div style={{ color: '#44445a', fontSize: '.78rem', marginBottom: 10 }}>از اکانت‌های پیش‌فرض استفاده می‌شود</div>
+            <div style={{ color: 'var(--t3)', fontSize: '.78rem', marginBottom: 10 }}>از اکانت‌های پیش‌فرض استفاده می‌شود</div>
           )}
         </div>
         <div className="ap-kw-add-row" style={{ padding: '0 16px 12px' }}>
@@ -241,11 +246,11 @@ function SettingsTab({ qs, initData }) {
           <div className="ap-setting-label" style={{ marginBottom: 6 }}>📝 پیام خوش‌آمدگویی</div>
           <textarea className="ap-input" rows={3} value={s.welcomeMessage || ''} dir="rtl"
             onChange={e => setS(p => ({ ...p, welcomeMessage: e.target.value }))} />
-          <div className="ap-setting-label" style={{ marginBottom: 6, marginTop: 10 }}>⚠️ حد اخطار گروه</div>
-          <input className="ap-input" type="number" min={1} max={10} value={s.warnLimit || 3} dir="ltr"
-            onChange={e => setS(p => ({ ...p, warnLimit: parseInt(e.target.value) || 3 }))} />
+          <div className="ap-setting-label" style={{ marginBottom: 6, marginTop: 10 }}>⚠️ حد اخطار گروه (۱ تا ۱۰)</div>
+          <input className="ap-input" type="number" min={1} max={10} value={s.warnLimit ?? 3} dir="ltr"
+            onChange={e => setS(p => ({ ...p, warnLimit: e.target.value === '' ? '' : Number(e.target.value) }))} />
         </div>
-        <button className="ap-save-btn" onClick={() => save({ welcomeMessage: s.welcomeMessage, warnLimit: s.warnLimit })} disabled={saving}>
+        <button className="ap-save-btn" onClick={() => save({ welcomeMessage: s.welcomeMessage, warnLimit: Math.max(1, Math.min(10, parseInt(s.warnLimit) || 3)) })} disabled={saving}>
           {saving ? 'در حال ذخیره...' : '💾 ذخیره تنظیمات'}
         </button>
       </div>

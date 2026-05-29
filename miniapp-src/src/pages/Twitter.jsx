@@ -89,7 +89,10 @@ export default function Twitter() {
       {error && (
         <div className="tw-error">
           <span>⚠️</span>
-          <span>خطا در دریافت توییت‌ها. Nitter ممکنه در دسترس نباشه.</span>
+          <div>
+            <div>سرویس توییتر موقتاً در دسترس نیست</div>
+            <div style={{ fontSize: '.72rem', marginTop: 4, opacity: .7 }}>سرورهای Nitter گاهی قطع می‌شوند — چند دقیقه دیگر امتحان کنید</div>
+          </div>
         </div>
       )}
 

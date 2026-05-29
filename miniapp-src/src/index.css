@@ -1,30 +1,30 @@
 /* ── VeriaApp Premium Dark Theme ─────────────────────────── */
 :root {
   /* Backgrounds */
-  --bg:        #07070f;
-  --bg-page:   #0b0b18;
-  --bg-card:   #10101e;
-  --bg-card2:  #141428;
-  --bg-input:  #0e0e1c;
+  --bg:        #0d0d1c;
+  --bg-page:   #10101f;
+  --bg-card:   #17172e;
+  --bg-card2:  #1d1d38;
+  --bg-input:  #141428;
 
   /* Accents */
-  --blue:      #3d8bff;
-  --blue-dim:  rgba(61,139,255,.18);
-  --blue-glow: 0 0 22px rgba(61,139,255,.22);
-  --gold:      #c9a02a;
-  --gold-dim:  rgba(201,160,42,.18);
-  --gold-glow: 0 0 22px rgba(201,160,42,.2);
-  --green:     #3fb950;
-  --red:       #f85149;
+  --blue:      #4d9bff;
+  --blue-dim:  rgba(77,155,255,.20);
+  --blue-glow: 0 0 22px rgba(77,155,255,.25);
+  --gold:      #d4aa35;
+  --gold-dim:  rgba(212,170,53,.20);
+  --gold-glow: 0 0 22px rgba(212,170,53,.22);
+  --green:     #4ec760;
+  --red:       #ff6b6b;
 
   /* Text */
-  --t1: #e8e8f4;
-  --t2: #8888a8;
-  --t3: #44445a;
+  --t1: #f0f0fc;
+  --t2: #aaaacc;
+  --t3: #7878a8;
 
   /* Borders */
-  --b1: rgba(255,255,255,.07);
-  --b2: rgba(255,255,255,.12);
+  --b1: rgba(255,255,255,.10);
+  --b2: rgba(255,255,255,.16);
   --b-blue: rgba(61,139,255,.3);
   --b-gold: rgba(201,160,42,.3);
 
