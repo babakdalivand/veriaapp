@@ -32,8 +32,9 @@ const SEED_QUOTES = [
 async function connectDB() {
   try {
     await sequelize.authenticate();
-    // Import Quote model after sequelize is ready
+    // Import models to register them before sync
     const Quote = require('./models/Quote');
+    require('./models/BotCommand');
     await sequelize.sync();
     // Add new columns that may not exist yet (safe, idempotent)
     await sequelize.query(`ALTER TABLE Users ADD COLUMN IF NOT EXISTS premiumExpiry DATETIME NULL`).catch(() => {});

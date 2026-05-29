@@ -5,7 +5,7 @@ import YouTube    from './pages/YouTube.jsx'
 import Twitter    from './pages/Twitter.jsx'
 import Quotes     from './pages/Quotes.jsx'
 import Profile    from './pages/Profile.jsx'
-import QuoteAdmin from './pages/QuoteAdmin.jsx'
+import AdminPanel from './pages/AdminPanel.jsx'
 import BottomNav  from './BottomNav.jsx'
 
 const PAGES = {
@@ -14,7 +14,7 @@ const PAGES = {
   twitter: Twitter,
   quotes: Quotes,
   profile: Profile,
-  admin: QuoteAdmin,
+  admin: AdminPanel,
 }
 
 export default function App() {

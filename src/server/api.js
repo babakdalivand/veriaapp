@@ -6,6 +6,8 @@ const User = require('../database/models/User');
 const Admin = require('../database/models/Admin');
 const Warn = require('../database/models/Warn');
 const Quote = require('../database/models/Quote');
+const BotCommand = require('../database/models/BotCommand');
+const Settings = require('../database/models/Settings');
 const Parser = require('rss-parser');
 const botState = require('../bot/botState');
 const schedulerState = require('../bot/schedulerState');
@@ -246,6 +248,136 @@ router.post('/admin/trigger-quote', requireAdmin, async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
+});
+
+// ── Admin: settings ──────────────────────────────────────────────────────────
+
+// GET /api/admin/settings
+router.get('/admin/settings', requireAdmin, async (req, res) => {
+  if (!(await checkAdminRole(req.tgUserId))) return res.status(403).json({ error: 'forbidden' });
+  try {
+    const s = await Settings.getSettings();
+    res.json({
+      botEnabled: s.botEnabled,
+      welcomeMessage: s.welcomeMessage,
+      mainChannelId: s.mainChannelId,
+      mainGroupId: s.mainGroupId,
+      captchaEnabled: s.captchaEnabled,
+      antiSpamEnabled: s.antiSpamEnabled,
+      antiLinkEnabled: s.antiLinkEnabled,
+      warnLimit: s.warnLimit,
+      keywords: s.keywords || '',
+    });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// PUT /api/admin/settings
+router.put('/admin/settings', express.json(), requireAdmin, async (req, res) => {
+  if (!(await checkAdminRole(req.tgUserId))) return res.status(403).json({ error: 'forbidden' });
+  try {
+    const s = await Settings.getSettings();
+    const allowed = ['botEnabled','welcomeMessage','mainChannelId','mainGroupId',
+                     'captchaEnabled','antiSpamEnabled','antiLinkEnabled','warnLimit','keywords'];
+    for (const key of allowed) {
+      if (req.body[key] !== undefined) s[key] = req.body[key];
+    }
+    await s.save();
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── Admin: bot commands ───────────────────────────────────────────────────────
+
+// GET /api/admin/commands
+router.get('/admin/commands', requireAdmin, async (req, res) => {
+  if (!(await checkAdminRole(req.tgUserId))) return res.status(403).json({ error: 'forbidden' });
+  try {
+    res.json(await BotCommand.findAll({ order: [['command', 'ASC']] }));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/admin/commands
+router.post('/admin/commands', express.json(), requireAdmin, async (req, res) => {
+  if (!(await checkAdminRole(req.tgUserId))) return res.status(403).json({ error: 'forbidden' });
+  const { command, description, response } = req.body;
+  if (!command || !description) return res.status(400).json({ error: 'command and description required' });
+  const cmd = command.toLowerCase().replace(/[^a-z0-9_]/g, '');
+  if (!cmd) return res.status(400).json({ error: 'invalid command name' });
+  try {
+    const [record] = await BotCommand.findOrCreate({ where: { command: cmd }, defaults: { description, response: response || '' } });
+    if (record._options?.isNewRecord === false) {
+      await record.update({ description, response: response || '' });
+    }
+    res.json(record);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// PUT /api/admin/commands/:id
+router.put('/admin/commands/:id', express.json(), requireAdmin, async (req, res) => {
+  if (!(await checkAdminRole(req.tgUserId))) return res.status(403).json({ error: 'forbidden' });
+  try {
+    const c = await BotCommand.findByPk(req.params.id);
+    if (!c) return res.status(404).json({ error: 'not found' });
+    const { description, response, isActive } = req.body;
+    await c.update({
+      ...(description !== undefined && { description }),
+      ...(response !== undefined && { response }),
+      ...(isActive !== undefined && { isActive }),
+    });
+    res.json(c);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// DELETE /api/admin/commands/:id
+router.delete('/admin/commands/:id', requireAdmin, async (req, res) => {
+  if (!(await checkAdminRole(req.tgUserId))) return res.status(403).json({ error: 'forbidden' });
+  try {
+    const c = await BotCommand.findByPk(req.params.id);
+    if (!c) return res.status(404).json({ error: 'not found' });
+    await c.destroy();
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── Admin: users management ───────────────────────────────────────────────────
+
+// GET /api/admin/users?search=
+router.get('/admin/users', requireAdmin, async (req, res) => {
+  if (!(await checkAdminRole(req.tgUserId))) return res.status(403).json({ error: 'forbidden' });
+  const { search, limit = 30, offset = 0 } = req.query;
+  try {
+    const where = search ? {
+      [Op.or]: [
+        { username: { [Op.like]: `%${search}%` } },
+        { firstName: { [Op.like]: `%${search}%` } },
+        { telegramId: search },
+      ]
+    } : {};
+    const users = await User.findAll({
+      where,
+      limit: Math.min(parseInt(limit) || 30, 50),
+      offset: parseInt(offset) || 0,
+      order: [['createdAt', 'DESC']],
+      attributes: ['telegramId','username','firstName','role','premiumExpiry','isBlocked','createdAt'],
+    });
+    res.json(users);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// PUT /api/admin/users/:telegramId
+router.put('/admin/users/:telegramId', express.json(), requireAdmin, async (req, res) => {
+  if (!(await checkAdminRole(req.tgUserId))) return res.status(403).json({ error: 'forbidden' });
+  try {
+    const u = await User.findOne({ where: { telegramId: req.params.telegramId } });
+    if (!u) return res.status(404).json({ error: 'not found' });
+    const { role, premiumExpiry, isBlocked } = req.body;
+    await u.update({
+      ...(role !== undefined && { role }),
+      ...(premiumExpiry !== undefined && { premiumExpiry }),
+      ...(isBlocked !== undefined && { isBlocked }),
+    });
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 module.exports = router;

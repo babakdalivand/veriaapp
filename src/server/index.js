@@ -21,6 +21,23 @@ async function startServer() {
   bot.telegram.getMe().then(info => { botState.username = info.username; }).catch(() => {});
   startScheduler(bot);
 
+  // Register bot commands in Telegram menu
+  bot.telegram.setMyCommands([
+    { command: 'start',     description: 'شروع / بازگشت به منو' },
+    { command: 'help',      description: 'راهنمای دستورات' },
+    { command: 'menu',      description: 'نمایش منو اصلی' },
+    { command: 'miniapp',   description: 'باز کردن Mini App' },
+    { command: 'quote',     description: 'نقل‌قول روز' },
+    { command: 'youtube',   description: 'دانلود ویدیو یوتیوب' },
+    { command: 'ai',        description: 'دستیار هوشمند' },
+    { command: 'twitter',   description: 'فید توییتر' },
+    { command: 'news',      description: 'آخرین اخبار' },
+    { command: 'premium',   description: 'خرید پریمیوم' },
+    { command: 'invite',    description: 'لینک دعوت شما' },
+    { command: 'settings',  description: '⚙️ تنظیمات (ادمین)' },
+    { command: 'broadcast', description: '📢 ارسال همگانی (مالک)' },
+  ]).catch(e => console.error('setMyCommands error:', e.message));
+
   const app = express();
 
   app.use(express.json());
