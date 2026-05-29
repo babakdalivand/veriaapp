@@ -22,7 +22,7 @@ async function startServer() {
     console.log(`Webhook set: ${WEBHOOK_DOMAIN}${webhookPath}`);
   } else {
     await bot.telegram.deleteWebhook();
-    bot.launch();
+    bot.launch({ allowedUpdates: ['message', 'callback_query', 'chat_join_request', 'chat_member'] });
     console.log('Bot running in polling mode');
   }
 
