@@ -23,6 +23,7 @@ const { antiSpamMiddleware } = require('./handlers/moderation/antiSpam');
 const { antiLinkMiddleware } = require('./handlers/moderation/antiLink');
 const { keywordFilterMiddleware } = require('./handlers/moderation/keywordFilter');
 const { joinRequestHandler, captchaCallbackHandler } = require('./handlers/moderation/joinHandler');
+const { youtubeMenuHandler, handleYoutubeUrl, youtubeDownloadCallback, userState } = require('./handlers/youtube');
 
 function createBot() {
   const bot = new Telegraf(BOT_TOKEN);
@@ -34,6 +35,14 @@ function createBot() {
   bot.use(antiLinkMiddleware);
   bot.use(keywordFilterMiddleware);
 
+  // YouTube conversation state middleware
+  bot.use((ctx, next) => {
+    if (ctx.message?.text && userState.get(ctx.from?.id) === 'waiting_url') {
+      return handleYoutubeUrl(ctx);
+    }
+    return next();
+  });
+
   // Start
   bot.start(startHandler);
 
@@ -44,7 +53,7 @@ function createBot() {
   bot.hears('🛡️ مدیریت گروه', groupMenuHandler);
   bot.hears('🎬 مدیریت محتوا', comingSoonHandler);
   bot.hears('📱 Mini App', miniAppHandler);
-  bot.hears('📺 دانلود یوتیوب', comingSoonHandler);
+  bot.hears('📺 دانلود یوتیوب', youtubeMenuHandler);
   bot.hears('📰 آخرین اخبار', comingSoonHandler);
   bot.hears('💬 نقل‌قول روز', comingSoonHandler);
   bot.hears('ℹ️ درباره ما', comingSoonHandler);
@@ -62,6 +71,9 @@ function createBot() {
   bot.command('setgroup', setGroupCommand);
   bot.command('setwarnlimit', setWarnLimitCommand);
   bot.command('setkeywords', setKeywordsCommand);
+
+  // YouTube download callbacks
+  bot.action(/^yt:/, youtubeDownloadCallback);
 
   // Group management panel callbacks
   bot.action(/^grp:/, groupMenuCallback);
