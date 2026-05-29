@@ -14,6 +14,7 @@ const botState = require('../bot/botState');
 const schedulerState = require('../bot/schedulerState');
 const { BOT_TOKEN } = require('../config');
 const { detectPlatform, PLATFORM_INFO, callCobalt, downloadToChannel, downloadToUser } = require('../bot/handlers/downloader');
+const { extractVideoId, isYoutubeUrl, getYoutubeVideoInfo, downloadYoutubeToChannel } = require('../bot/handlers/youtube');
 
 const router = Router();
 
@@ -137,26 +138,30 @@ const NITTER = [
   'https://nitter.esmailelbob.xyz',
   'https://nitter.nl',
   'https://nitter.unixfox.eu',
+  'https://nitter.it',
+  'https://nitter.net',
 ];
 
 router.get('/tweets', async (req, res) => {
   const { username } = req.query;
   if (!username || username.length > 50) return res.status(400).json({ error: 'invalid username' });
 
-  for (const instance of NITTER) {
-    try {
-      const feed = await rssParser.parseURL(`${instance}/${username}/rss`);
-      if (feed?.items?.length) {
-        const tweets = feed.items.slice(0, 5).map(item => ({
-          title: (item.title || '').slice(0, 220),
-          link: (item.link || '').replace(instance, 'https://twitter.com'),
-          date: item.pubDate ? new Date(item.pubDate).toLocaleDateString('fa-IR') : '',
-        }));
-        return res.json({ tweets, username });
-      }
-    } catch (_) {}
+  const tryInstance = (instance) =>
+    rssParser.parseURL(`${instance}/${username}/rss`).then(feed => {
+      if (!feed?.items?.length) throw new Error('empty');
+      return feed.items.slice(0, 5).map(item => ({
+        title: (item.title || '').slice(0, 220),
+        link: (item.link || '').replace(instance, 'https://twitter.com'),
+        date: item.pubDate ? new Date(item.pubDate).toLocaleDateString('fa-IR') : '',
+      }));
+    });
+
+  try {
+    const tweets = await Promise.any(NITTER.map(tryInstance));
+    return res.json({ tweets, username });
+  } catch {
+    res.status(502).json({ error: 'nitter_down', message: 'سرویس توییتر موقتاً در دسترس نیست — لطفاً بعداً امتحان کنید' });
   }
-  res.status(502).json({ error: 'nitter_down', message: 'سرویس توییتر موقتاً در دسترس نیست — لطفاً بعداً امتحان کنید' });
 });
 
 // GET /api/quote  (public, today's quote)
@@ -449,6 +454,45 @@ router.put('/admin/users/:telegramId', express.json(), requireAdmin, async (req,
 });
 
 // ── Download API ─────────────────────────────────────────────────────────────
+
+// ── YouTube API ──────────────────────────────────────────────────────────────
+
+// POST /api/youtube/info  — get video title/duration/formats (admin)
+// Body: { url }
+router.post('/youtube/info', express.json(), requireAdmin, async (req, res) => {
+  const { url } = req.body;
+  if (!url || !isYoutubeUrl(url)) return res.status(400).json({ error: 'لینک یوتیوب نامعتبر است.' });
+  const videoId = extractVideoId(url);
+  if (!videoId) return res.status(400).json({ error: 'شناسه ویدیو پیدا نشد.' });
+  try {
+    const info = await getYoutubeVideoInfo(videoId);
+    res.json({ ...info, videoId });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/youtube/to-channel  — download and post to channel with CTA (admin only)
+// Body: { videoId, height }
+router.post('/youtube/to-channel', express.json(), requireAdmin, async (req, res) => {
+  if (!(await checkAdminRole(req.tgUserId))) return res.status(403).json({ error: 'forbidden' });
+  const { videoId, height } = req.body;
+  if (!videoId) return res.status(400).json({ error: 'videoId الزامی است.' });
+
+  const bot = botState.bot;
+  if (!bot) return res.status(503).json({ error: 'Bot not ready' });
+
+  const settings = await Settings.getSettings();
+  const channelId = settings.mainChannelId;
+  if (!channelId) return res.status(400).json({ error: 'کانالی تنظیم نشده.' });
+
+  try {
+    const result = await downloadYoutubeToChannel(bot, videoId, parseInt(height) || 0, channelId);
+    res.json(result);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 
 // GET /api/download/detect?url=...  — detect platform (public)
 router.get('/download/detect', (req, res) => {

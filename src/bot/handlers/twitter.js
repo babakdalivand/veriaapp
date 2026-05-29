@@ -4,9 +4,15 @@ const Settings = require('../../database/models/Settings');
 const parser = new Parser({ timeout: 10000, headers: { 'User-Agent': 'Mozilla/5.0' } });
 
 const NITTER_INSTANCES = [
-  'https://nitter.privacydev.net',
   'https://nitter.poast.org',
+  'https://nitter.privacydev.net',
+  'https://nitter.catsarch.com',
+  'https://nitter.1d4.us',
   'https://nitter.nl',
+  'https://nitter.unixfox.eu',
+  'https://nitter.esmailelbob.xyz',
+  'https://nitter.it',
+  'https://nitter.net',
 ];
 
 const DEFAULT_ACCOUNTS = ['IranIntl_Fa', 'bbcpersian', 'AlinejadMasih'];
@@ -23,20 +29,21 @@ async function getAccounts() {
 }
 
 async function fetchTweets(username) {
-  for (const instance of NITTER_INSTANCES) {
-    try {
-      const url = `${instance}/${username}/rss`;
-      const feed = await parser.parseURL(url);
-      if (feed?.items?.length) {
-        return feed.items.slice(0, 3).map(item => ({
-          title: (item.title || '').slice(0, 200),
-          link: item.link?.replace(instance, 'https://twitter.com') || '',
-          date: item.pubDate ? new Date(item.pubDate).toLocaleDateString('fa-IR') : '',
-        }));
-      }
-    } catch (_) {}
+  const tryInstance = (instance) =>
+    parser.parseURL(`${instance}/${username}/rss`).then(feed => {
+      if (!feed?.items?.length) throw new Error('empty');
+      return feed.items.slice(0, 3).map(item => ({
+        title: (item.title || '').slice(0, 200),
+        link: (item.link || '').replace(instance, 'https://twitter.com'),
+        date: item.pubDate ? new Date(item.pubDate).toLocaleDateString('fa-IR') : '',
+      }));
+    });
+
+  try {
+    return await Promise.any(NITTER_INSTANCES.map(tryInstance));
+  } catch {
+    return null;
   }
-  return null;
 }
 
 async function twitterMenuHandler(ctx) {

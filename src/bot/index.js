@@ -34,7 +34,8 @@ const { broadcastMenuHandler, handleBroadcastMessage, isWaitingBroadcast } = req
 const { referralHandler } = require('./handlers/referral');
 const { generateTweetImage, THEME_KEYS } = require('./handlers/graphics');
 const { isOwner, isAdmin } = require('./middleware/auth');
-const { handleMediaLink, downloadCallback } = require('./handlers/downloader');
+const { handleMediaLink, downloadCallback, pendingDownloads, genId } = require('./handlers/downloader');
+const { handleVideoMessage, conversionCallback } = require('./handlers/converter');
 
 function createBot() {
   const bot = new Telegraf(BOT_TOKEN);
@@ -147,16 +148,19 @@ function createBot() {
     );
   });
 
-  // Admin/Owner: tweet URL → tweet card image
+  // tweet URL → tweet card image (admin) + download offer (all users)
   const TWEET_URL_RE = /https?:\/\/(twitter\.com|x\.com)\/(\w+)\/status\/(\d+)/i;
-  bot.hears(TWEET_URL_RE, async (ctx) => {
-    if (!(await isAdmin(ctx))) return;
+  bot.hears(TWEET_URL_RE, async (ctx, next) => {
+    if (!(await isAdmin(ctx))) return next(); // non-admin → pass to media downloader
     const match = ctx.message.text.match(TWEET_URL_RE);
     if (!match) return;
     const username = match[2];
     const Parser = require('rss-parser');
     const rssParser = new Parser({ timeout: 8000, headers: { 'User-Agent': 'Mozilla/5.0' } });
-    const NITTER = ['https://nitter.privacydev.net', 'https://nitter.poast.org', 'https://nitter.nl'];
+    const NITTER = [
+      'https://nitter.poast.org', 'https://nitter.privacydev.net',
+      'https://nitter.catsarch.com', 'https://nitter.nl', 'https://nitter.it',
+    ];
     let tweet = null;
     for (const inst of NITTER) {
       try {
@@ -176,14 +180,22 @@ function createBot() {
     if (!tweet) return ctx.reply('❌ دریافت توییت ناموفق بود.');
     const imgBuffer = await generateTweetImage(tweet, THEME_KEYS[Math.floor(Math.random() * THEME_KEYS.length)]).catch(() => null);
     if (!imgBuffer) return ctx.reply('❌ ساخت تصویر ناموفق بود.');
+
+    // Register download option for this tweet
+    const dlId = genId();
+    pendingDownloads.set(dlId, { url: ctx.message.text, userId: ctx.from.id, platform: 'twitter', ts: Date.now() });
+
     await ctx.replyWithPhoto({ source: imgBuffer }, {
       caption: `🐦 *@${username}*\n\n${tweet.text}\n\n[مشاهده توییت اصلی](${tweet.link})`,
       parse_mode: 'Markdown',
+      ...Markup.inlineKeyboard([[
+        Markup.button.callback('🎬 دانلود ویدیو', `dl:v:${dlId}`),
+      ]]),
     });
   });
 
-  // Auto-detect media links (Instagram, TikTok, SoundCloud, Vimeo, Dailymotion, Pinterest)
-  const MEDIA_URL_RE = /https?:\/\/(www\.)?(instagram\.com|tiktok\.com|vm\.tiktok\.com|soundcloud\.com|vimeo\.com|dailymotion\.com|dai\.ly|pinterest\.com|pin\.it)[^\s]*/i;
+  // Auto-detect media links (Instagram, TikTok, SoundCloud, Vimeo, Dailymotion, Pinterest, Twitter/X)
+  const MEDIA_URL_RE = /https?:\/\/(www\.)?(instagram\.com|tiktok\.com|vm\.tiktok\.com|soundcloud\.com|vimeo\.com|dailymotion\.com|dai\.ly|pinterest\.com|pin\.it|twitter\.com|x\.com)[^\s]*/i;
   bot.hears(MEDIA_URL_RE, handleMediaLink);
 
   // Custom slash commands from DB
@@ -221,6 +233,15 @@ function createBot() {
   bot.action('premium:buy', premiumBuyCallback);
   bot.action(/^grp:/, groupMenuCallback);
   bot.action(/^captcha:/, captchaCallbackHandler);
+  bot.action(/^conv:/, conversionCallback);
+
+  // Video file → offer MP3 conversion
+  bot.on('message', async (ctx, next) => {
+    if (ctx.message?.video || (ctx.message?.document?.mime_type?.startsWith('video/'))) {
+      await handleVideoMessage(ctx);
+    }
+    return next();
+  });
 
   // Payment
   bot.on('pre_checkout_query', preCheckoutHandler);

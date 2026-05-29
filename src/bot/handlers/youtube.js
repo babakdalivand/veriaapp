@@ -216,4 +216,88 @@ async function youtubeDownloadCallback(ctx) {
   }
 }
 
-module.exports = { youtubeMenuHandler, handleYoutubeUrl, youtubeDownloadCallback, userState };
+// Get video info for Mini App (title, duration, available formats)
+async function getYoutubeVideoInfo(videoId) {
+  const innertube = await getYT();
+  const info = await innertube.getInfo(videoId);
+  const details = info.basic_info;
+  const duration = details.duration || 0;
+
+  if (duration > 600) throw new Error('ویدیوهای بیشتر از ۱۰ دقیقه پشتیبانی نمی‌شن.');
+
+  const workable = await getWorkableFormats(info, innertube.session.player);
+  if (workable.length === 0) throw new Error('هیچ فرمت قابل دانلودی پیدا نشد.');
+
+  return {
+    title: details.title || 'ویدیو',
+    duration,
+    durationStr: formatDuration(duration),
+    viewCount: details.view_count ? parseInt(details.view_count) : 0,
+    thumbnail: details.thumbnail?.[0]?.url || null,
+    formats: workable.map(w => ({
+      height: w.height,
+      sizeMB: w.format.content_length
+        ? parseFloat((parseInt(w.format.content_length) / 1024 / 1024).toFixed(1))
+        : null,
+    })),
+  };
+}
+
+// Download and send to channel with CTA inline keyboard
+async function downloadYoutubeToChannel(bot, videoId, targetHeight, channelId) {
+  const innertube = await getYT();
+  const info = await innertube.getInfo(videoId);
+  const title = (info.basic_info.title || 'ویدیو').replace(/[^\w\s؀-ۿ]/g, '').trim().slice(0, 100);
+
+  const workable = await getWorkableFormats(info, innertube.session.player);
+  const chosen = workable.find(w => w.height === targetHeight) || workable[0];
+  if (!chosen) throw new Error('فرمت مورد نظر پیدا نشد.');
+
+  const contentLength = chosen.format.content_length ? parseInt(chosen.format.content_length) : null;
+  if (contentLength && contentLength > MAX_SIZE_MB * 1024 * 1024) {
+    throw new Error(`فایل ${formatSize(contentLength)} است — بیشتر از حد مجاز تلگرام.`);
+  }
+
+  const tmpFile = path.join(os.tmpdir(), `yt_ch_${Date.now()}.mp4`);
+  try {
+    await downloadUrl(chosen.url, tmpFile);
+    const stat = fs.statSync(tmpFile);
+    if (stat.size > MAX_SIZE_MB * 1024 * 1024) {
+      throw new Error(`فایل ${formatSize(stat.size)} است — بیشتر از حد مجاز تلگرام.`);
+    }
+
+    const channelStr = String(channelId);
+    const channelUsername = channelStr.startsWith('@') ? channelStr.slice(1) : null;
+
+    const ctaButtons = [];
+    if (channelUsername) {
+      ctaButtons.push({ text: '📢 عضویت در کانال', url: `https://t.me/${channelUsername}` });
+    }
+    ctaButtons.push({ text: '▶️ مشاهده در یوتیوب', url: `https://youtu.be/${videoId}` });
+
+    await bot.telegram.sendVideo(
+      channelStr,
+      { source: tmpFile, filename: title + '.mp4' },
+      {
+        caption: `🎬 ${title}`,
+        reply_markup: { inline_keyboard: [ctaButtons] },
+      }
+    );
+
+    return { ok: true, title };
+  } finally {
+    try { if (fs.existsSync(tmpFile)) fs.unlinkSync(tmpFile); } catch {}
+  }
+}
+
+module.exports = {
+  youtubeMenuHandler,
+  handleYoutubeUrl,
+  youtubeDownloadCallback,
+  userState,
+  extractVideoId,
+  isYoutubeUrl,
+  formatDuration,
+  getYoutubeVideoInfo,
+  downloadYoutubeToChannel,
+};

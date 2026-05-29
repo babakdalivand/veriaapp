@@ -339,4 +339,6 @@ module.exports = {
   downloadToChannel,
   downloadToUser,
   callCobalt,
+  pendingDownloads,
+  genId,
 };

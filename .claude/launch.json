@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "miniapp-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "E:\\MiniApp Projects\\veriaapp\\miniapp-src",
+      "port": 5173
+    }
+  ]
+}

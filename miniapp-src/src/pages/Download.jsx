@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import './Download.css'
 
 const SUPPORTED = [
@@ -13,14 +13,14 @@ const SUPPORTED = [
 ]
 
 const PLATFORM_MAP = {
-  youtube: { name: 'یوتیوب', emoji: '📺' },
-  instagram: { name: 'اینستاگرام', emoji: '📷' },
-  twitter: { name: 'توییتر / X', emoji: '🐦' },
-  tiktok: { name: 'تیک‌تاک', emoji: '🎵' },
-  soundcloud: { name: 'ساندکلاد', emoji: '🎵' },
-  vimeo: { name: 'ویمیو', emoji: '🎬' },
-  dailymotion: { name: 'دیلی‌موشن', emoji: '🎬' },
-  pinterest: { name: 'پینترست', emoji: '📌' },
+  youtube:    { name: 'یوتیوب',      emoji: '📺' },
+  instagram:  { name: 'اینستاگرام',  emoji: '📷' },
+  twitter:    { name: 'توییتر / X',  emoji: '🐦' },
+  tiktok:     { name: 'تیک‌تاک',     emoji: '🎵' },
+  soundcloud: { name: 'ساندکلاد',    emoji: '🎵' },
+  vimeo:      { name: 'ویمیو',       emoji: '🎬' },
+  dailymotion:{ name: 'دیلی‌موشن',   emoji: '🎬' },
+  pinterest:  { name: 'پینترست',     emoji: '📌' },
 }
 
 function detectPlatformClient(url) {
@@ -38,15 +38,34 @@ function detectPlatformClient(url) {
   return null
 }
 
+function formatDur(seconds) {
+  const m = Math.floor(seconds / 60)
+  const s = seconds % 60
+  return `${m}:${String(s).padStart(2, '0')}`
+}
+
 export default function Download({ me, meLoading }) {
   const [url, setUrl]           = useState('')
   const [platform, setPlatform] = useState(null)
-  const [mode, setMode]         = useState('video') // 'video' | 'audio'
-  const [status, setStatus]     = useState(null)    // { type: 'loading'|'success'|'error', msg }
-  const [target, setTarget]     = useState('me')    // 'me' | 'channel'
-  const inputRef = useRef(null)
+  const [mode, setMode]         = useState('video')   // 'video' | 'audio'
+  const [status, setStatus]     = useState(null)      // { type, msg }
+  const [target, setTarget]     = useState('me')      // 'me' | 'channel'
 
+  // YouTube-specific state
+  const [ytInfo, setYtInfo]       = useState(null)    // null | {loading} | {title, duration, formats, videoId} | {error}
+  const [ytQuality, setYtQuality] = useState(null)    // selected height number
+
+  const inputRef = useRef(null)
   const isAdmin = me?.role === 'admin' || me?.role === 'owner'
+
+  // YouTube channel mode = show quality selector
+  const isYtChannelMode = platform === 'youtube' && isAdmin && target === 'channel'
+
+  // Reset YouTube state when URL or target changes
+  useEffect(() => {
+    setYtInfo(null)
+    setYtQuality(null)
+  }, [url, target])
 
   const handleUrlChange = useCallback((e) => {
     const v = e.target.value
@@ -67,6 +86,27 @@ export default function Download({ me, meLoading }) {
     inputRef.current?.focus()
   }, [])
 
+  const fetchYtInfo = useCallback(async () => {
+    const trimmed = url.trim()
+    const initData = window.Telegram?.WebApp?.initData || ''
+    if (!initData || !trimmed) return
+    setYtInfo({ loading: true })
+    try {
+      const qs = `?initData=${encodeURIComponent(initData)}`
+      const r = await fetch(`/api/youtube/info${qs}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: trimmed }),
+      })
+      const d = await r.json()
+      if (!r.ok) throw new Error(d.error || `HTTP ${r.status}`)
+      setYtInfo(d)
+      setYtQuality(d.formats?.[0]?.height ?? null)
+    } catch (e) {
+      setYtInfo({ error: e.message })
+    }
+  }, [url])
+
   const handleDownload = useCallback(async () => {
     const trimmed = url.trim()
     if (!trimmed) return
@@ -81,11 +121,39 @@ export default function Download({ me, meLoading }) {
       return
     }
 
+    const qs = `?initData=${encodeURIComponent(initData)}`
+
+    // YouTube → Channel: use quality-aware endpoint
+    if (isYtChannelMode) {
+      if (!ytInfo || !ytInfo.videoId) {
+        setStatus({ type: 'error', msg: 'ابتدا اطلاعات ویدیو را دریافت کنید.' })
+        return
+      }
+      setStatus({ type: 'loading', msg: 'در حال دانلود و ارسال به کانال...' })
+      try {
+        const r = await fetch(`/api/youtube/to-channel${qs}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ videoId: ytInfo.videoId, height: ytQuality }),
+        })
+        const d = await r.json()
+        if (!r.ok) throw new Error(d.error || `HTTP ${r.status}`)
+        setStatus({ type: 'success', msg: `✅ "${ytInfo.title?.slice(0, 40)}" در کانال ارسال شد!` })
+        setUrl('')
+        setPlatform(null)
+        setYtInfo(null)
+        setYtQuality(null)
+      } catch (e) {
+        setStatus({ type: 'error', msg: `❌ ${e.message}` })
+      }
+      return
+    }
+
+    // Standard cobalt flow (all other cases including YouTube → me)
     const endpoint = target === 'channel' ? '/api/download/to-channel' : '/api/download/to-me'
     setStatus({ type: 'loading', msg: target === 'channel' ? 'در حال ارسال به کانال...' : 'در حال ارسال به پیام‌های شما...' })
 
     try {
-      const qs = `?initData=${encodeURIComponent(initData)}`
       const r = await fetch(`${endpoint}${qs}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -93,7 +161,6 @@ export default function Download({ me, meLoading }) {
       })
       const d = await r.json()
       if (!r.ok) throw new Error(d.error || `HTTP ${r.status}`)
-
       const successMsg = target === 'channel'
         ? '✅ فایل در کانال ارسال شد!'
         : '✅ فایل برای شما در تلگرام ارسال شد!'
@@ -103,9 +170,13 @@ export default function Download({ me, meLoading }) {
     } catch (e) {
       setStatus({ type: 'error', msg: `❌ ${e.message}` })
     }
-  }, [url, platform, mode, target])
+  }, [url, platform, mode, target, isYtChannelMode, ytInfo, ytQuality])
 
   const pInfo = platform ? PLATFORM_MAP[platform] : null
+
+  // Determine if download button should be disabled
+  const isDownloadReady = url.trim() && pInfo && status?.type !== 'loading'
+  const ytChannelReady = isYtChannelMode && ytInfo?.videoId && ytQuality
 
   return (
     <div className="page dl-page">
@@ -142,7 +213,6 @@ export default function Download({ me, meLoading }) {
           </button>
         </div>
 
-        {/* Platform detected badge */}
         {pInfo && (
           <div className="dl-detected">
             <span className="dl-detected-icon">{pInfo.emoji}</span>
@@ -157,24 +227,26 @@ export default function Download({ me, meLoading }) {
         )}
       </div>
 
-      {/* Mode toggle: video / audio */}
-      <div className="dl-mode-row card">
-        <span className="dl-mode-label">فرمت:</span>
-        <div className="dl-mode-toggle">
-          <button
-            className={`dl-mode-btn ${mode === 'video' ? 'active' : ''}`}
-            onClick={() => setMode('video')}
-          >
-            🎬 ویدیو
-          </button>
-          <button
-            className={`dl-mode-btn ${mode === 'audio' ? 'active' : ''}`}
-            onClick={() => setMode('audio')}
-          >
-            🎵 صدا MP3
-          </button>
+      {/* Mode toggle: video / audio — hidden in YouTube channel mode */}
+      {!isYtChannelMode && (
+        <div className="dl-mode-row card">
+          <span className="dl-mode-label">فرمت:</span>
+          <div className="dl-mode-toggle">
+            <button
+              className={`dl-mode-btn ${mode === 'video' ? 'active' : ''}`}
+              onClick={() => setMode('video')}
+            >
+              🎬 ویدیو
+            </button>
+            <button
+              className={`dl-mode-btn ${mode === 'audio' ? 'active' : ''}`}
+              onClick={() => setMode('audio')}
+            >
+              🎵 صدا MP3
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Target: me / channel (admin only) */}
       {isAdmin && (
@@ -197,14 +269,66 @@ export default function Download({ me, meLoading }) {
         </div>
       )}
 
+      {/* YouTube Channel Mode: quality selector */}
+      {isYtChannelMode && pInfo && (
+        <div className="dl-yt-section card">
+          {!ytInfo && (
+            <button
+              className="btn btn-blue btn-full"
+              onClick={fetchYtInfo}
+              disabled={status?.type === 'loading'}
+            >
+              📺 دریافت کیفیت‌های موجود
+            </button>
+          )}
+
+          {ytInfo?.loading && (
+            <div className="dl-yt-loading">
+              <span className="dl-spinner" /> در حال دریافت اطلاعات ویدیو...
+            </div>
+          )}
+
+          {ytInfo?.error && (
+            <div className="dl-yt-error">❌ {ytInfo.error}</div>
+          )}
+
+          {ytInfo?.videoId && (
+            <>
+              <div className="dl-yt-info">
+                <div className="dl-yt-title">{ytInfo.title}</div>
+                <div className="dl-yt-meta">
+                  ⏱ {ytInfo.durationStr}
+                  {ytInfo.viewCount > 0 && <> · 👁 {ytInfo.viewCount.toLocaleString()}</>}
+                </div>
+              </div>
+              <div className="dl-yt-label">کیفیت:</div>
+              <div className="dl-yt-qualities">
+                {ytInfo.formats.map(f => (
+                  <button
+                    key={f.height}
+                    className={`dl-quality-btn ${ytQuality === f.height ? 'active' : ''}`}
+                    onClick={() => setYtQuality(f.height)}
+                  >
+                    <span className="dl-quality-res">{f.height}p</span>
+                    {f.sizeMB && <span className="dl-quality-size">{f.sizeMB} MB</span>}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
       {/* Download button */}
       <button
-        className={`btn btn-blue btn-full dl-btn ${!url.trim() || !pInfo ? 'disabled' : ''}`}
+        className={`btn btn-blue btn-full dl-btn ${!isDownloadReady || (isYtChannelMode && !ytChannelReady) ? 'disabled' : ''}`}
         onClick={handleDownload}
-        disabled={!url.trim() || !pInfo || status?.type === 'loading'}
+        disabled={!isDownloadReady || (isYtChannelMode && !ytChannelReady) || status?.type === 'loading'}
       >
         {status?.type === 'loading' ? (
           <span className="dl-spinner" />
+        ) : isYtChannelMode ? (
+          <>📺 پست به کانال{ytQuality ? ` (${ytQuality}p)` : ''}</>
         ) : (
           <>⬇️ {target === 'channel' ? 'ارسال به کانال' : 'دانلود برای من'}</>
         )}
@@ -223,6 +347,7 @@ export default function Download({ me, meLoading }) {
         <ul className="dl-info-list">
           <li>لینک ویدیو/موزیک را از پلتفرم دلخواه کپی کنید</li>
           <li>اینجا Paste کنید و فرمت (ویدیو یا صدا) را انتخاب کنید</li>
+          <li>برای یوتیوب → کانال: کیفیت را انتخاب کنید تا با دکمه CTA پست شود</li>
           <li>فایل مستقیماً در بات تلگرام برایتان ارسال می‌شود</li>
         </ul>
         <div className="dl-info-note">
