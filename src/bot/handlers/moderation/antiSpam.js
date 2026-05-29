@@ -18,9 +18,12 @@ function cleanup() {
 setInterval(cleanup, 60000);
 
 async function antiSpamMiddleware(ctx, next) {
-  console.log('[ANTISPAM] called');
   if (!ctx.chat || ctx.chat.type === 'private') return next();
   if (!ctx.message) return next();
+
+  // skip stale queued messages (older than 30 seconds)
+  const messageAge = Date.now() - ctx.message.date * 1000;
+  if (messageAge > 30000) return next();
 
   const settings = await Settings.getSettings().catch(() => null);
   if (!settings || !settings.antiSpamEnabled) return next();

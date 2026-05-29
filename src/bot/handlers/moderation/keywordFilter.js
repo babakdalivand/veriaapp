@@ -6,6 +6,10 @@ async function keywordFilterMiddleware(ctx, next) {
   if (!ctx.chat || ctx.chat.type === 'private') return next();
   if (!ctx.message?.text && !ctx.message?.caption) return next();
 
+  // skip stale queued messages
+  const messageAge = Date.now() - ctx.message.date * 1000;
+  if (messageAge > 30000) return next();
+
   const settings = await Settings.getSettings().catch(() => null);
   if (!settings || !settings.keywords) return next();
 
