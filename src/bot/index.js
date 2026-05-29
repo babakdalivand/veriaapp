@@ -26,7 +26,8 @@ const { joinRequestHandler, captchaCallbackHandler } = require('./handlers/moder
 const { youtubeMenuHandler, handleYoutubeUrl, youtubeDownloadCallback, userState: ytUserState } = require('./handlers/youtube');
 const { newsHandler } = require('./handlers/news');
 const { quoteHandler } = require('./handlers/quote');
-const { aiMenuHandler, handleAiMessage, userState: aiUserState } = require('./handlers/ai');
+const { twitterMenuHandler, twitterCallback, handleTwitterUsername, userState: twitterUserState } = require('./handlers/twitter');
+const { aiMenuHandler, aiPickCallback, handleAiMessage, isWaitingAI } = require('./handlers/ai');
 const { premiumMenuHandler, premiumBuyCallback, preCheckoutHandler, successfulPaymentHandler } = require('./handlers/premium');
 
 function createBot() {
@@ -45,7 +46,8 @@ function createBot() {
     const text = ctx.message?.text;
     if (!text || !userId) return next();
     if (ytUserState.get(userId) === 'waiting_url') return handleYoutubeUrl(ctx);
-    if (aiUserState.get(userId) === 'waiting_ai') return handleAiMessage(ctx);
+    if (isWaitingAI(userId)) return handleAiMessage(ctx);
+    if (twitterUserState.get(userId) === 'waiting_twitter') return handleTwitterUsername(ctx);
     return next();
   });
 
@@ -63,6 +65,7 @@ function createBot() {
   bot.hears('📰 آخرین اخبار', newsHandler);
   bot.hears('💬 نقل‌قول روز', quoteHandler);
   bot.hears('🤖 دستیار هوشمند', aiMenuHandler);
+  bot.hears('🐦 توییتر', twitterMenuHandler);
   bot.hears('⭐ پریمیوم', premiumMenuHandler);
   bot.hears('📱 Mini App', miniAppHandler);
   bot.hears('ℹ️ درباره ما', comingSoonHandler);
@@ -83,6 +86,12 @@ function createBot() {
 
   // YouTube download callbacks
   bot.action(/^yt:/, youtubeDownloadCallback);
+
+  // Twitter callbacks
+  bot.action(/^tw:/, twitterCallback);
+
+  // AI provider pick callbacks
+  bot.action(/^ai:pick:/, aiPickCallback);
 
   // Premium callbacks
   bot.action('premium:buy', premiumBuyCallback);
