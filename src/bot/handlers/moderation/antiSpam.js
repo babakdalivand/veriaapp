@@ -18,6 +18,7 @@ function cleanup() {
 setInterval(cleanup, 60000);
 
 async function antiSpamMiddleware(ctx, next) {
+  console.log('[ANTISPAM] called');
   if (!ctx.chat || ctx.chat.type === 'private') return next();
   if (!ctx.message) return next();
 

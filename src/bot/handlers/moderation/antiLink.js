@@ -6,6 +6,7 @@ const URL_REGEX = /(?:https?:\/\/|www\.|t\.me\/|@\w{5,})[^\s]*/gi;
 const TG_INVITE_REGEX = /(?:t\.me\/(?:joinchat\/|\+)[^\s]+)/gi;
 
 async function antiLinkMiddleware(ctx, next) {
+  console.log('[ANTILINK] called, type:', ctx.chat?.type);
   if (!ctx.chat || ctx.chat.type === 'private') return next();
   if (!ctx.message?.text && !ctx.message?.caption) return next();
 
