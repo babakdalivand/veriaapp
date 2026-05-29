@@ -3,6 +3,13 @@ const { createBot } = require('../bot');
 const { connectDB } = require('../database/connection');
 const { PORT, USE_WEBHOOK, WEBHOOK_DOMAIN, WEBHOOK_SECRET, NODE_ENV } = require('../config');
 
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled rejection:', reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught exception:', err.message);
+});
+
 async function startServer() {
   await connectDB();
 

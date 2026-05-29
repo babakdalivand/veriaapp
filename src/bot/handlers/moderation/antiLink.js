@@ -25,7 +25,8 @@ async function antiLinkMiddleware(ctx, next) {
 
   const userId = ctx.from.id;
   const groupId = ctx.chat.id;
-  const result = await warnUser(ctx, userId, groupId, 'ارسال لینک', ctx.botInfo.id).catch(() => null);
+  const botId = ctx.botInfo?.id ?? 0;
+  const result = await warnUser(ctx, userId, groupId, 'ارسال لینک', botId).catch(() => null);
 
   if (result) {
     const name = ctx.from.first_name || 'کاربر';

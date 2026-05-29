@@ -27,7 +27,8 @@ async function keywordFilterMiddleware(ctx, next) {
 
   const userId = ctx.from.id;
   const groupId = ctx.chat.id;
-  const result = await warnUser(ctx, userId, groupId, `کلمه ممنوع: ${matched}`, ctx.botInfo.id).catch(() => null);
+  const botId = ctx.botInfo?.id ?? 0;
+  const result = await warnUser(ctx, userId, groupId, `کلمه ممنوع: ${matched}`, botId).catch(() => null);
 
   if (result) {
     const name = ctx.from.first_name || 'کاربر';
