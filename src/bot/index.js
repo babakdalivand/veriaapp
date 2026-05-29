@@ -23,7 +23,11 @@ const { antiSpamMiddleware } = require('./handlers/moderation/antiSpam');
 const { antiLinkMiddleware } = require('./handlers/moderation/antiLink');
 const { keywordFilterMiddleware } = require('./handlers/moderation/keywordFilter');
 const { joinRequestHandler, captchaCallbackHandler } = require('./handlers/moderation/joinHandler');
-const { youtubeMenuHandler, handleYoutubeUrl, youtubeDownloadCallback, userState } = require('./handlers/youtube');
+const { youtubeMenuHandler, handleYoutubeUrl, youtubeDownloadCallback, userState: ytUserState } = require('./handlers/youtube');
+const { newsHandler } = require('./handlers/news');
+const { quoteHandler } = require('./handlers/quote');
+const { aiMenuHandler, handleAiMessage, userState: aiUserState } = require('./handlers/ai');
+const { premiumMenuHandler, premiumBuyCallback, preCheckoutHandler, successfulPaymentHandler } = require('./handlers/premium');
 
 function createBot() {
   const bot = new Telegraf(BOT_TOKEN);
@@ -35,11 +39,13 @@ function createBot() {
   bot.use(antiLinkMiddleware);
   bot.use(keywordFilterMiddleware);
 
-  // YouTube conversation state middleware
+  // Conversation state middleware
   bot.use((ctx, next) => {
-    if (ctx.message?.text && userState.get(ctx.from?.id) === 'waiting_url') {
-      return handleYoutubeUrl(ctx);
-    }
+    const userId = ctx.from?.id;
+    const text = ctx.message?.text;
+    if (!text || !userId) return next();
+    if (ytUserState.get(userId) === 'waiting_url') return handleYoutubeUrl(ctx);
+    if (aiUserState.get(userId) === 'waiting_ai') return handleAiMessage(ctx);
     return next();
   });
 
@@ -54,8 +60,11 @@ function createBot() {
   bot.hears('🎬 مدیریت محتوا', comingSoonHandler);
   bot.hears('📱 Mini App', miniAppHandler);
   bot.hears('📺 دانلود یوتیوب', youtubeMenuHandler);
-  bot.hears('📰 آخرین اخبار', comingSoonHandler);
-  bot.hears('💬 نقل‌قول روز', comingSoonHandler);
+  bot.hears('📰 آخرین اخبار', newsHandler);
+  bot.hears('💬 نقل‌قول روز', quoteHandler);
+  bot.hears('🤖 دستیار هوشمند', aiMenuHandler);
+  bot.hears('⭐ پریمیوم', premiumMenuHandler);
+  bot.hears('📱 Mini App', miniAppHandler);
   bot.hears('ℹ️ درباره ما', comingSoonHandler);
 
   // Admin commands
@@ -74,6 +83,14 @@ function createBot() {
 
   // YouTube download callbacks
   bot.action(/^yt:/, youtubeDownloadCallback);
+
+  // Premium callbacks
+  bot.action('premium:buy', premiumBuyCallback);
+  bot.on('pre_checkout_query', preCheckoutHandler);
+  bot.on('message', (ctx, next) => {
+    if (ctx.message?.successful_payment) return successfulPaymentHandler(ctx);
+    return next();
+  });
 
   // Group management panel callbacks
   bot.action(/^grp:/, groupMenuCallback);

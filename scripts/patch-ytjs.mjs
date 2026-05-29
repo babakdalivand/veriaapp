@@ -1,9 +1,7 @@
 import { writeFileSync, existsSync } from 'fs';
-import { resolve, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { resolve } from 'path';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const target = resolve(__dirname, '../node_modules/youtubei.js/dist/src/platform/jsruntime/default.js');
+const target = resolve(process.cwd(), 'node_modules/youtubei.js/dist/src/platform/jsruntime/default.js');
 
 if (!existsSync(target)) {
   console.log('patch-ytjs: target not found, skipping');
