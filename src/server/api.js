@@ -132,40 +132,47 @@ router.get('/twitter/accounts', async (req, res) => {
   } catch { res.json({ accounts: DEFAULT_TWITTER_ACCOUNTS }); }
 });
 
-// GET /api/tweets?username=IranIntl_Fa  (public, Nitter RSS)
-const rssParser = new Parser({ timeout: 6000, headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1)' } });
-const NITTER = [
-  'https://nitter.poast.org',
-  'https://nitter.privacydev.net',
-  'https://nitter.catsarch.com',
-  'https://nitter.1d4.us',
-  'https://nitter.esmailelbob.xyz',
-  'https://nitter.nl',
-  'https://nitter.unixfox.eu',
-  'https://nitter.it',
-  'https://nitter.net',
-];
+// GET /api/twitter/profile?username=bbcpersian  (fxtwitter public API)
+router.get('/twitter/profile', async (req, res) => {
+  const { username } = req.query;
+  if (!username || username.length > 50) return res.status(400).json({ error: 'invalid username' });
+  try {
+    const https = require('https');
+    const data = await new Promise((resolve, reject) => {
+      const req2 = https.get(`https://api.fxtwitter.com/${username}`, {
+        headers: { 'User-Agent': 'VeriaApp/2.0' },
+        timeout: 8000,
+      }, (r) => {
+        let body = '';
+        r.on('data', c => body += c);
+        r.on('end', () => {
+          try { resolve(JSON.parse(body)); }
+          catch { reject(new Error('invalid json')); }
+        });
+      });
+      req2.on('error', reject);
+      req2.on('timeout', () => { req2.destroy(); reject(new Error('timeout')); });
+    });
+    if (data.code !== 200) return res.status(404).json({ error: 'not found' });
+    const u = data.user;
+    res.json({
+      username: u.screen_name,
+      name: u.name,
+      description: u.description,
+      followers: u.followers,
+      tweets: u.tweets,
+      url: `https://x.com/${u.screen_name}`,
+    });
+  } catch (e) {
+    res.status(502).json({ error: 'api_error', message: e.message });
+  }
+});
 
+// GET /api/tweets — kept for backward compat but returns redirect info
 router.get('/tweets', async (req, res) => {
   const { username } = req.query;
   if (!username || username.length > 50) return res.status(400).json({ error: 'invalid username' });
-
-  const tryInstance = (instance) =>
-    rssParser.parseURL(`${instance}/${username}/rss`).then(feed => {
-      if (!feed?.items?.length) throw new Error('empty');
-      return feed.items.slice(0, 5).map(item => ({
-        title: (item.title || '').slice(0, 220),
-        link: (item.link || '').replace(instance, 'https://twitter.com'),
-        date: item.pubDate ? new Date(item.pubDate).toLocaleDateString('fa-IR') : '',
-      }));
-    });
-
-  try {
-    const tweets = await Promise.any(NITTER.map(tryInstance));
-    return res.json({ tweets, username });
-  } catch {
-    res.status(502).json({ error: 'nitter_down', message: 'سرویس توییتر موقتاً در دسترس نیست — لطفاً بعداً امتحان کنید' });
-  }
+  res.status(503).json({ error: 'nitter_down', message: 'نمایش مستقیم توییت‌ها به دلیل محدودیت API توییتر/X غیرفعال است.' });
 });
 
 // GET /api/quote  (public, today's quote)

@@ -14,7 +14,7 @@ const MAX_SIZE_MB = 45;
 let ytInstance = null;
 async function getYT() {
   if (!ytInstance) {
-    ytInstance = await Innertube.create({ retrieve_player: false });
+    ytInstance = await Innertube.create();
   }
   return ytInstance;
 }
