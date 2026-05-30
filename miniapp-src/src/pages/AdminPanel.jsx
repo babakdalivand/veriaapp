@@ -742,12 +742,13 @@ function UsersTab({ qs, initData }) {
 
 /* ── YouTube Monitor ── */
 function YtMonitorTab({ qs, initData }) {
-  const [monitors, setMonitors] = useState([])
-  const [loading,  setLoading]  = useState(true)
-  const [input,    setInput]    = useState('')
-  const [adding,   setAdding]   = useState(false)
-  const [msg,      setMsg]      = useState(null)
-  const [checking, setChecking] = useState(false)
+  const [monitors,   setMonitors]  = useState([])
+  const [loading,    setLoading]   = useState(true)
+  const [input,      setInput]     = useState('')
+  const [adding,     setAdding]    = useState(false)
+  const [msg,        setMsg]       = useState(null)
+  const [checking,   setChecking]  = useState(false)
+  const [testingId,  setTestingId] = useState(null)
 
   const showMsg = (type, text) => { setMsg({ type, text }); setTimeout(() => setMsg(null), 5000) }
 
@@ -813,6 +814,21 @@ function YtMonitorTab({ qs, initData }) {
       showMsg('success', `✅ ${d.message}`)
     } catch (e) { showMsg('error', `❌ ${e.message}`) }
     setChecking(false)
+  }
+
+  async function testChannel(m) {
+    setTestingId(m.id)
+    try {
+      const r = await fetch(`/api/admin/youtube-monitor/${m.id}/test${qs}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ initData }),
+      })
+      const d = await r.json()
+      if (!r.ok) throw new Error(d.error)
+      showMsg('success', `✅ ${d.message}`)
+    } catch (e) { showMsg('error', `❌ ${e.message}`) }
+    setTestingId(null)
   }
 
   return (
@@ -892,6 +908,10 @@ function YtMonitorTab({ qs, initData }) {
             </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
+            <button className="qa-btn-sm" onClick={() => testChannel(m)} disabled={testingId === m.id}
+              style={{ background: 'rgba(61,139,255,.1)', border: '1px solid rgba(61,139,255,.25)', color: 'var(--blue)' }}>
+              {testingId === m.id ? '⏳' : '🧪 تست'}
+            </button>
             <button className="qa-btn-sm" onClick={() => toggleActive(m)}
               style={{
                 background: m.isActive ? 'rgba(248,81,73,.1)' : 'rgba(78,199,96,.1)',

@@ -541,6 +541,32 @@ router.post('/admin/youtube-monitor/check-now', requireAdmin, async (req, res) =
   res.json({ ok: true, message: 'بررسی شروع شد — نتیجه در چند ثانیه ارسال خواهد شد.' });
 });
 
+// POST /api/admin/youtube-monitor/:id/test  — force-send latest video
+router.post('/admin/youtube-monitor/:id/test', express.json(), requireAdmin, async (req, res) => {
+  if (!(await checkAdminRole(req.tgUserId))) return res.status(403).json({ error: 'forbidden' });
+  const bot = botState.bot;
+  if (!bot) return res.status(503).json({ error: 'Bot not ready' });
+
+  const monitor = await YoutubeMonitor.findByPk(req.params.id).catch(() => null);
+  if (!monitor) return res.status(404).json({ error: 'کانال پیدا نشد' });
+
+  const settings = await Settings.getSettings().catch(() => null);
+  const tgChannel = settings?.mainChannelId;
+  if (!tgChannel) return res.status(400).json({ error: 'کانال تلگرام تنظیم نشده' });
+
+  try {
+    const { fetchRssLatest } = require('../bot/handlers/youtubeMonitor');
+    const item = await fetchRssLatest(monitor.channelId);
+    if (!item) return res.status(404).json({ error: 'ویدیویی در RSS پیدا نشد' });
+
+    const { postItemDirect } = require('../bot/handlers/youtubeMonitor');
+    await postItemDirect(bot, tgChannel, item, monitor);
+    res.json({ ok: true, message: `ویدیو «${item.data.title.slice(0, 40)}» ارسال شد` });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── Download API ─────────────────────────────────────────────────────────────
 
 // ── YouTube API ──────────────────────────────────────────────────────────────

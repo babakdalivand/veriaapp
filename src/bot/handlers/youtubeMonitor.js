@@ -226,4 +226,18 @@ async function checkAllChannels(bot) {
   }
 }
 
-module.exports = { resolveChannel, checkAllChannels };
+// ── Fetch latest single item from RSS (for test) ──────────────────────────────
+
+async function fetchRssLatest(channelId) {
+  const xml     = await fetchRss(channelId);
+  const entries = parseRssEntries(xml);
+  if (!entries.length) return null;
+  const e = entries[0];
+  return { id: e.id, type: 'video', data: { title: e.title, thumbnail: e.thumbnail } };
+}
+
+async function postItemDirect(bot, telegramChannelId, item, monitor) {
+  return postItem(bot, telegramChannelId, item, monitor);
+}
+
+module.exports = { resolveChannel, checkAllChannels, fetchRssLatest, postItemDirect };
