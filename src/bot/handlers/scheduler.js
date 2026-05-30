@@ -3,6 +3,7 @@ const { generateQuoteImage, THEME_KEYS } = require('./graphics');
 const Quote = require('../../database/models/Quote');
 const Settings = require('../../database/models/Settings');
 const schedulerState = require('../schedulerState');
+const { checkAllChannels } = require('./youtubeMonitor');
 
 async function postDailyQuote(bot) {
   try {
@@ -36,6 +37,10 @@ function startScheduler(bot) {
   cron.schedule('0 5 * * *', () => postDailyQuote(bot), { timezone: 'UTC' });
   schedulerState.triggerQuote = () => postDailyQuote(bot);
   cron.schedule('* * * * *', () => checkScheduledPosts(bot));
+  // Check YouTube monitored channels every 15 minutes
+  cron.schedule('*/15 * * * *', () => checkAllChannels(bot).catch(e =>
+    console.error('[YTMonitor] cron error:', e.message)
+  ));
   console.log('[Scheduler] Quote scheduler started (05:00 UTC daily)');
 }
 

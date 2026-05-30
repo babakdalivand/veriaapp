@@ -8,6 +8,7 @@ const TABS = [
   { id: 'quotes',    label: '💬 نقل‌قول' },
   { id: 'scheduled', label: '📅 زمان‌بندی' },
   { id: 'users',     label: '👥 کاربران' },
+  { id: 'ytmonitor', label: '📺 یوتیوب' },
 ]
 
 export default function AdminPanel({ me }) {
@@ -38,6 +39,7 @@ export default function AdminPanel({ me }) {
         {tab === 'quotes'   && <QuotesTab qs={qs} initData={initData} />}
         {tab === 'scheduled' && <ScheduledTab qs={qs} initData={initData} />}
         {tab === 'users'    && <UsersTab qs={qs} initData={initData} />}
+        {tab === 'ytmonitor' && <YtMonitorTab qs={qs} initData={initData} />}
       </div>
       <div style={{ height: 80 }} />
     </div>
@@ -734,6 +736,177 @@ function UsersTab({ qs, initData }) {
           </div>
         ))
       }
+    </div>
+  )
+}
+
+/* ── YouTube Monitor ── */
+function YtMonitorTab({ qs, initData }) {
+  const [monitors, setMonitors] = useState([])
+  const [loading,  setLoading]  = useState(true)
+  const [input,    setInput]    = useState('')
+  const [adding,   setAdding]   = useState(false)
+  const [msg,      setMsg]      = useState(null)
+  const [checking, setChecking] = useState(false)
+
+  const showMsg = (type, text) => { setMsg({ type, text }); setTimeout(() => setMsg(null), 5000) }
+
+  const load = useCallback(() => {
+    setLoading(true)
+    fetch(`/api/admin/youtube-monitor${qs}`)
+      .then(r => r.json()).then(d => setMonitors(Array.isArray(d) ? d : [])).catch(() => setMonitors([]))
+      .finally(() => setLoading(false))
+  }, [qs])
+
+  useEffect(() => { load() }, [load])
+
+  async function addChannel() {
+    if (!input.trim()) return
+    setAdding(true)
+    try {
+      const r = await fetch(`/api/admin/youtube-monitor${qs}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channelUrl: input.trim(), initData }),
+      })
+      const d = await r.json()
+      if (!r.ok) throw new Error(d.error || `HTTP ${r.status}`)
+      showMsg('success', `✅ کانال «${d.channelTitle}» ${d.created ? 'اضافه' : 'فعال'} شد`)
+      setInput('')
+      load()
+    } catch (e) { showMsg('error', `❌ ${e.message}`) }
+    setAdding(false)
+  }
+
+  async function toggleActive(m) {
+    try {
+      const r = await fetch(`/api/admin/youtube-monitor/${m.id}${qs}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: !m.isActive, initData }),
+      })
+      if (!r.ok) throw new Error((await r.json()).error)
+      setMonitors(prev => prev.map(x => x.id === m.id ? { ...x, isActive: !x.isActive } : x))
+    } catch (e) { showMsg('error', `❌ ${e.message}`) }
+  }
+
+  async function remove(m) {
+    if (!confirm(`حذف کانال «${m.channelTitle}»؟`)) return
+    try {
+      const r = await fetch(`/api/admin/youtube-monitor/${m.id}${qs}`, { method: 'DELETE' })
+      if (!r.ok) throw new Error((await r.json()).error)
+      setMonitors(prev => prev.filter(x => x.id !== m.id))
+      showMsg('success', '✅ کانال حذف شد')
+    } catch (e) { showMsg('error', `❌ ${e.message}`) }
+  }
+
+  async function checkNow() {
+    setChecking(true)
+    try {
+      const r = await fetch(`/api/admin/youtube-monitor/check-now${qs}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ initData }),
+      })
+      const d = await r.json()
+      if (!r.ok) throw new Error(d.error)
+      showMsg('success', `✅ ${d.message}`)
+    } catch (e) { showMsg('error', `❌ ${e.message}`) }
+    setChecking(false)
+  }
+
+  return (
+    <div style={{ padding: '0 16px 16px' }}>
+      <div className="ap-section-title" style={{ marginBottom: 12 }}>
+        📺 مانیتور کانال‌های یوتیوب
+      </div>
+      <p style={{ fontSize: '.8rem', color: 'var(--t3)', margin: '0 0 16px', lineHeight: 1.6 }}>
+        هر ۱۵ دقیقه ویدیوها، شورت‌ها و لایوهای جدید به‌صورت خودکار در کانال تلگرام پست می‌شوند.
+      </p>
+
+      <div className="card" style={{ padding: 14, marginBottom: 12 }}>
+        <div style={{ fontSize: '.8rem', color: 'var(--t3)', marginBottom: 8, fontWeight: 700 }}>
+          افزودن کانال یوتیوب:
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input
+            className="ap-input"
+            placeholder="URL کانال یا @handle یا UCxxxxxx"
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && addChannel()}
+            dir="ltr"
+            style={{ flex: 1, fontSize: '.82rem' }}
+          />
+          <button className="ap-btn" onClick={addChannel} disabled={adding || !input.trim()} style={{ whiteSpace: 'nowrap' }}>
+            {adding ? '⏳' : '➕ افزودن'}
+          </button>
+        </div>
+        <div style={{ fontSize: '.72rem', color: 'var(--t3)', marginTop: 6, opacity: .7 }}>
+          مثال: https://youtube.com/@channelname یا @channelname
+        </div>
+      </div>
+
+      {msg && (
+        <div style={{
+          padding: '10px 14px', borderRadius: 10, marginBottom: 12, fontSize: '.85rem', fontWeight: 700,
+          background: msg.type === 'success' ? 'rgba(78,199,96,.12)' : 'rgba(255,107,107,.1)',
+          border: `1px solid ${msg.type === 'success' ? 'rgba(78,199,96,.25)' : 'rgba(255,107,107,.25)'}`,
+          color: msg.type === 'success' ? 'var(--green)' : 'var(--red)',
+        }}>
+          {msg.text}
+        </div>
+      )}
+
+      {monitors.length > 0 && (
+        <button className="ap-btn" onClick={checkNow} disabled={checking} style={{ marginBottom: 14, width: '100%' }}>
+          {checking ? '⏳ در حال بررسی...' : '🔍 بررسی فوری همه کانال‌ها'}
+        </button>
+      )}
+
+      {loading ? (
+        <div className="ap-empty">در حال بارگذاری...</div>
+      ) : monitors.length === 0 ? (
+        <div className="ap-empty">هنوز کانالی اضافه نشده.</div>
+      ) : monitors.map(m => (
+        <div key={m.id} className="card" style={{
+          padding: 12, marginBottom: 10, opacity: m.isActive ? 1 : 0.55,
+          display: 'flex', gap: 12, alignItems: 'center',
+        }}>
+          {m.thumbnailUrl && (
+            <img src={m.thumbnailUrl} alt={m.channelTitle}
+              style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+              onError={e => { e.target.style.display = 'none' }} />
+          )}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 700, fontSize: '.9rem', color: 'var(--t1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {m.channelTitle}
+            </div>
+            {m.channelHandle && (
+              <div style={{ fontSize: '.72rem', color: 'var(--t3)', direction: 'ltr', textAlign: 'left' }}>
+                {m.channelHandle}
+              </div>
+            )}
+            <div style={{ fontSize: '.68rem', color: 'var(--t3)', marginTop: 2 }}>
+              {m.postedCount} پست‌شده · {m.isActive ? '🟢 فعال' : '🔴 متوقف'}
+            </div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
+            <button className="qa-btn-sm" onClick={() => toggleActive(m)}
+              style={{
+                background: m.isActive ? 'rgba(248,81,73,.1)' : 'rgba(78,199,96,.1)',
+                border: `1px solid ${m.isActive ? 'rgba(248,81,73,.2)' : 'rgba(78,199,96,.25)'}`,
+                color: m.isActive ? 'var(--red)' : 'var(--green)',
+              }}>
+              {m.isActive ? '⏸ توقف' : '▶️ فعال'}
+            </button>
+            <button className="qa-btn-sm" onClick={() => remove(m)}
+              style={{ background: 'rgba(248,81,73,.1)', border: '1px solid rgba(248,81,73,.2)', color: 'var(--red)' }}>
+              🗑 حذف
+            </button>
+          </div>
+        </div>
+      ))}
     </div>
   )
 }

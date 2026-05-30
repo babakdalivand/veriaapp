@@ -15,6 +15,8 @@ const schedulerState = require('../bot/schedulerState');
 const { BOT_TOKEN } = require('../config');
 const { detectPlatform, PLATFORM_INFO, callCobalt, downloadToChannel, downloadToUser } = require('../bot/handlers/downloader');
 const { extractVideoId, isYoutubeUrl, getYoutubeVideoInfo, downloadYoutubeToChannel } = require('../bot/handlers/youtube');
+const { resolveChannel, checkAllChannels } = require('../bot/handlers/youtubeMonitor');
+const YoutubeMonitor = require('../database/models/YoutubeMonitor');
 
 const router = Router();
 
@@ -451,6 +453,92 @@ router.put('/admin/users/:telegramId', express.json(), requireAdmin, async (req,
     });
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── YouTube Monitor API ───────────────────────────────────────────────────────
+
+// GET /api/admin/youtube-monitor
+router.get('/admin/youtube-monitor', requireAdmin, async (req, res) => {
+  if (!(await checkAdminRole(req.tgUserId))) return res.status(403).json({ error: 'forbidden' });
+  try {
+    const monitors = await YoutubeMonitor.findAll({ order: [['createdAt', 'DESC']] });
+    res.json(monitors.map(m => ({
+      id: m.id,
+      channelId: m.channelId,
+      channelTitle: m.channelTitle,
+      channelHandle: m.channelHandle,
+      thumbnailUrl: m.thumbnailUrl,
+      isActive: m.isActive,
+      postedCount: JSON.parse(m.postedIds || '[]').length,
+      createdAt: m.createdAt,
+    })));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/admin/youtube-monitor  — add channel
+// Body: { channelUrl }
+router.post('/admin/youtube-monitor', express.json(), requireAdmin, async (req, res) => {
+  if (!(await checkAdminRole(req.tgUserId))) return res.status(403).json({ error: 'forbidden' });
+  const { channelUrl } = req.body;
+  if (!channelUrl) return res.status(400).json({ error: 'channelUrl الزامی است.' });
+  try {
+    const info = await resolveChannel(channelUrl);
+    const [monitor, created] = await YoutubeMonitor.findOrCreate({
+      where: { channelId: info.channelId },
+      defaults: {
+        channelTitle:  info.channelTitle,
+        channelHandle: info.channelHandle,
+        thumbnailUrl:  info.thumbnailUrl,
+        postedIds:     JSON.stringify(info.existingIds),
+        isActive:      true,
+      },
+    });
+    if (!created) {
+      // Reactivate if it was disabled
+      await monitor.update({ isActive: true, channelTitle: info.channelTitle, thumbnailUrl: info.thumbnailUrl });
+    }
+    res.json({
+      ok: true,
+      created,
+      channelTitle: info.channelTitle,
+      channelHandle: info.channelHandle,
+      thumbnailUrl: info.thumbnailUrl,
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// PUT /api/admin/youtube-monitor/:id  — toggle isActive
+router.put('/admin/youtube-monitor/:id', express.json(), requireAdmin, async (req, res) => {
+  if (!(await checkAdminRole(req.tgUserId))) return res.status(403).json({ error: 'forbidden' });
+  try {
+    const m = await YoutubeMonitor.findByPk(req.params.id);
+    if (!m) return res.status(404).json({ error: 'not found' });
+    const { isActive } = req.body;
+    await m.update({ isActive: isActive !== undefined ? isActive : !m.isActive });
+    res.json({ ok: true, isActive: m.isActive });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// DELETE /api/admin/youtube-monitor/:id
+router.delete('/admin/youtube-monitor/:id', requireAdmin, async (req, res) => {
+  if (!(await checkAdminRole(req.tgUserId))) return res.status(403).json({ error: 'forbidden' });
+  try {
+    const m = await YoutubeMonitor.findByPk(req.params.id);
+    if (!m) return res.status(404).json({ error: 'not found' });
+    await m.destroy();
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/admin/youtube-monitor/check-now  — manual trigger
+router.post('/admin/youtube-monitor/check-now', requireAdmin, async (req, res) => {
+  if (!(await checkAdminRole(req.tgUserId))) return res.status(403).json({ error: 'forbidden' });
+  const bot = botState.bot;
+  if (!bot) return res.status(503).json({ error: 'Bot not ready' });
+  checkAllChannels(bot).catch(e => console.error('[YTMonitor] manual check error:', e.message));
+  res.json({ ok: true, message: 'بررسی شروع شد — نتیجه در چند ثانیه ارسال خواهد شد.' });
 });
 
 // ── Download API ─────────────────────────────────────────────────────────────

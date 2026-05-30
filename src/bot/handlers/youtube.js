@@ -298,6 +298,7 @@ module.exports = {
   extractVideoId,
   isYoutubeUrl,
   formatDuration,
+  getYT,
   getYoutubeVideoInfo,
   downloadYoutubeToChannel,
 };
