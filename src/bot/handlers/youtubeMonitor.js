@@ -61,11 +61,10 @@ function buildPost(item, monitor) {
       buttons: [
         [
           { text: '▶️ تماشای ویدیو', url: vidUrl },
-          { text: '🔔 عضویت در کانال', url: chUrl },
+          { text: '🔔 سابسکرایب', url: chUrl },
         ],
         [
           { text: '👍 لایک ویدیو', url: vidUrl },
-          { text: '📤 اشتراک‌گذاری', url: shareUrl },
         ],
       ],
     };
@@ -82,11 +81,10 @@ function buildPost(item, monitor) {
       buttons: [
         [
           { text: '▶️ تماشا', url: vidUrl },
-          { text: '🔔 عضویت', url: chUrl },
+          { text: '🔔 سابسکرایب', url: chUrl },
         ],
         [
           { text: '👍 لایک', url: vidUrl },
-          { text: '📤 اشتراک‌گذاری', url: shareUrl },
         ],
       ],
     };
@@ -103,10 +101,7 @@ function buildPost(item, monitor) {
       buttons: [
         [
           { text: '🔴 تماشای لایو', url: vidUrl },
-          { text: '🔔 عضویت', url: chUrl },
-        ],
-        [
-          { text: '📤 اشتراک‌گذاری', url: shareUrl },
+          { text: '🔔 سابسکرایب', url: chUrl },
         ],
       ],
     };
@@ -120,18 +115,17 @@ function buildPost(item, monitor) {
     `📅 *لایو پیش‌رو: ${title}*\n\n` +
     `📺 [${chName}](${chUrl})` +
     (scheduledTime ? `\n⏰ زمان: ${scheduledTime} (تهران)` : '') +
-    `\n\n🔔 عضو کانال یوتیوب شوید تا یادآوری دریافت کنید`;
+    `\n\n🔔 سابسکرایب کنید تا یادآوری دریافت کنید`;
 
   return {
     caption,
     buttons: [
       [
         { text: '🔔 یادآوری', url: vidUrl },
-        { text: '🔔 عضویت', url: chUrl },
+        { text: '🔔 سابسکرایب', url: chUrl },
       ],
       [
         { text: '▶️ مشاهده', url: vidUrl },
-        { text: '📤 اشتراک‌گذاری', url: shareUrl },
       ],
     ],
   };
