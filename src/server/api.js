@@ -213,6 +213,11 @@ async function checkAdminRole(userId) {
   return user && (user.role === 'admin' || user.role === 'owner');
 }
 
+async function checkOwnerRole(userId) {
+  const user = await User.findOne({ where: { telegramId: userId } });
+  return user && user.role === 'owner';
+}
+
 // GET /api/admin/quotes
 router.get('/admin/quotes', requireAdmin, async (req, res) => {
   if (!(await checkAdminRole(req.tgUserId))) return res.status(403).json({ error: 'forbidden' });
@@ -642,9 +647,9 @@ router.get('/payment-info', requireAdmin, async (req, res) => {
   });
 });
 
-// PUT /admin/payment-settings  — save payment info
+// PUT /admin/payment-settings  — save payment info (owner only)
 router.put('/admin/payment-settings', express.json(), requireAdmin, async (req, res) => {
-  if (!(await checkAdminRole(req.tgUserId))) return res.status(403).json({ error: 'forbidden' });
+  if (!(await checkOwnerRole(req.tgUserId))) return res.status(403).json({ error: 'forbidden' });
   const { paypalUrl, walletBTC, walletUSDT, premiumPrice } = req.body;
   const s = await Settings.getSettings();
   await s.update({ paypalUrl, walletBTC, walletUSDT, premiumPrice: parseInt(premiumPrice) || 100 });

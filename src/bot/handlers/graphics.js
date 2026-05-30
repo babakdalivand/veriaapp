@@ -1,21 +1,7 @@
 const sharp = require('sharp');
-const fs = require('fs');
 const path = require('path');
 
 const FONTS_DIR = path.join(__dirname, '../../../fonts');
-
-let fontBase64 = null;
-let fontBoldBase64 = null;
-
-function loadFonts() {
-  if (fontBase64) return;
-  try {
-    fontBase64 = fs.readFileSync(path.join(FONTS_DIR, 'Vazirmatn-Regular.ttf')).toString('base64');
-    fontBoldBase64 = fs.readFileSync(path.join(FONTS_DIR, 'Vazirmatn-Bold.ttf')).toString('base64');
-  } catch (e) {
-    console.error('Font load failed:', e.message);
-  }
-}
 
 const THEMES = {
   gold: {
@@ -64,10 +50,13 @@ function wrapText(text, maxChars) {
 }
 
 function fontFaceCSS() {
-  if (!fontBase64) return '';
+  const reg  = path.join(FONTS_DIR, 'Vazirmatn-Regular.ttf');
+  const bold = path.join(FONTS_DIR, 'Vazirmatn-Bold.ttf');
+  // file:// + absolute path (which starts with / on Linux, so 3 slashes total)
+  const toUri = p => 'file://' + p.replace(/\\/g, '/');
   return `
-    @font-face { font-family:'Vazirmatn'; src:url('data:font/ttf;base64,${fontBase64}') format('truetype'); font-weight:400; }
-    @font-face { font-family:'Vazirmatn'; src:url('data:font/ttf;base64,${fontBoldBase64}') format('truetype'); font-weight:700; }
+    @font-face { font-family:'Vazirmatn'; src:url('${toUri(reg)}') format('truetype'); font-weight:400; }
+    @font-face { font-family:'Vazirmatn'; src:url('${toUri(bold)}') format('truetype'); font-weight:700; }
   `;
 }
 
@@ -85,7 +74,6 @@ function cornerDeco(accent, h) {
 }
 
 function buildQuoteSVG(quote, theme) {
-  loadFonts();
   const t = THEMES[theme] || THEMES.gold;
   const lines = wrapText(quote.text, 30);
   const lineH = 58;
@@ -122,7 +110,6 @@ function buildQuoteSVG(quote, theme) {
 }
 
 function buildTweetSVG(tweet, theme) {
-  loadFonts();
   const t = THEMES[theme] || THEMES.blue;
   const lines = wrapText(tweet.text, 32);
   const lineH = 54;

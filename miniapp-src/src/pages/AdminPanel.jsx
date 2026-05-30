@@ -19,6 +19,9 @@ export default function AdminPanel({ me, qs: qsProp, initData: initDataProp }) {
   const initData = initDataProp || window?.Telegram?.WebApp?.initData || ''
   const qs = qsProp || `?initData=${encodeURIComponent(initData || 'dev')}`
 
+  const isOwner = me?.role === 'owner'
+  const visibleTabs = TABS.filter(t => t.id !== 'payment' || isOwner)
+
   return (
     <div className="page">
       <div className="ap-header">
@@ -28,7 +31,7 @@ export default function AdminPanel({ me, qs: qsProp, initData: initDataProp }) {
       </div>
 
       <div className="ap-tabs">
-        {TABS.map(t => (
+        {visibleTabs.map(t => (
           <button key={t.id} className={`ap-tab ${tab === t.id ? 'active' : ''}`} onClick={() => setTab(t.id)}>
             {t.label}
           </button>
@@ -39,7 +42,7 @@ export default function AdminPanel({ me, qs: qsProp, initData: initDataProp }) {
         {tab === 'settings'  && <SettingsTab qs={qs} initData={initData} />}
         {tab === 'announce'  && <AnnouncementTab qs={qs} initData={initData} />}
         {tab === 'promos'    && <PromotionsTab qs={qs} initData={initData} />}
-        {tab === 'payment'   && <PaymentTab qs={qs} initData={initData} />}
+        {tab === 'payment'   && isOwner && <PaymentTab qs={qs} initData={initData} />}
         {tab === 'keywords'  && <KeywordsTab qs={qs} initData={initData} />}
         {tab === 'commands' && <CommandsTab qs={qs} initData={initData} />}
         {tab === 'quotes'   && <QuotesTab qs={qs} initData={initData} />}
