@@ -1,7 +1,4 @@
 const sharp = require('sharp');
-const path = require('path');
-
-const FONTS_DIR = path.join(__dirname, '../../../fonts');
 
 const THEMES = {
   gold: {
@@ -49,16 +46,6 @@ function wrapText(text, maxChars) {
   return lines;
 }
 
-function fontFaceCSS() {
-  const reg  = path.join(FONTS_DIR, 'Vazirmatn-Regular.ttf');
-  const bold = path.join(FONTS_DIR, 'Vazirmatn-Bold.ttf');
-  // file:// + absolute path (which starts with / on Linux, so 3 slashes total)
-  const toUri = p => 'file://' + p.replace(/\\/g, '/');
-  return `
-    @font-face { font-family:'Vazirmatn'; src:url('${toUri(reg)}') format('truetype'); font-weight:400; }
-    @font-face { font-family:'Vazirmatn'; src:url('${toUri(bold)}') format('truetype'); font-weight:700; }
-  `;
-}
 
 function cornerDeco(accent, h) {
   return `
@@ -89,7 +76,6 @@ function buildQuoteSVG(quote, theme) {
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="${h}">
   <defs>
-    <style>${fontFaceCSS()}</style>
     <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="${t.bg1}"/>
       <stop offset="100%" stop-color="${t.bg2}"/>
@@ -125,7 +111,6 @@ function buildTweetSVG(tweet, theme) {
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="${h}">
   <defs>
-    <style>${fontFaceCSS()}</style>
     <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="${t.bg1}"/>
       <stop offset="100%" stop-color="${t.bg2}"/>
