@@ -2,11 +2,10 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import './Download.css'
 
 const SUPPORTED = [
-  { id: 'instagram',   name: 'اینستاگرام',  emoji: '📷', example: 'instagram.com/...' },
   { id: 'tiktok',      name: 'تیک‌تاک',     emoji: '🎵', example: 'tiktok.com/...' },
+  { id: 'twitter',     name: 'توییتر / X',  emoji: '🐦', example: 'x.com/...' },
   { id: 'soundcloud',  name: 'ساندکلاد',    emoji: '🎵', example: 'soundcloud.com/...' },
   { id: 'youtube',     name: 'یوتیوب',      emoji: '📺', example: 'youtube.com/...' },
-  { id: 'twitter',     name: 'توییتر / X',  emoji: '🐦', example: 'x.com/...' },
   { id: 'vimeo',       name: 'ویمیو',       emoji: '🎬', example: 'vimeo.com/...' },
   { id: 'dailymotion', name: 'دیلی‌موشن',   emoji: '🎬', example: 'dailymotion.com/...' },
   { id: 'pinterest',   name: 'پینترست',     emoji: '📌', example: 'pinterest.com/...' },
@@ -14,7 +13,6 @@ const SUPPORTED = [
 
 const PLATFORM_MAP = {
   youtube:    { name: 'یوتیوب',      emoji: '📺' },
-  instagram:  { name: 'اینستاگرام',  emoji: '📷' },
   twitter:    { name: 'توییتر / X',  emoji: '🐦' },
   tiktok:     { name: 'تیک‌تاک',     emoji: '🎵' },
   soundcloud: { name: 'ساندکلاد',    emoji: '🎵' },
@@ -27,7 +25,6 @@ function detectPlatformClient(url) {
   try {
     const u = url.toLowerCase()
     if (/youtube\.com|youtu\.be/.test(u)) return 'youtube'
-    if (/instagram\.com/.test(u)) return 'instagram'
     if (/twitter\.com|x\.com/.test(u)) return 'twitter'
     if (/tiktok\.com|vm\.tiktok\.com/.test(u)) return 'tiktok'
     if (/soundcloud\.com/.test(u)) return 'soundcloud'

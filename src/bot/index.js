@@ -102,7 +102,6 @@ function createBot() {
   bot.command('quote', quoteHandler);
   bot.command('youtube', youtubeMenuHandler);
   bot.command('ai', aiMenuHandler);
-  bot.command('twitter', twitterMenuHandler);
   bot.command('news', newsHandler);
   bot.command('premium', premiumMenuHandler);
   bot.command('invite', referralHandler);
@@ -127,7 +126,6 @@ function createBot() {
   bot.hears('📰 آخرین اخبار', newsHandler);
   bot.hears('💬 نقل‌قول روز', quoteHandler);
   bot.hears('🤖 دستیار هوشمند', aiMenuHandler);
-  bot.hears('🐦 توییتر', twitterMenuHandler);
   bot.hears('⭐ پریمیوم', premiumMenuHandler);
   bot.hears('🔗 دعوت دوستان', referralHandler);
   bot.hears('📢 Broadcast', async (ctx) => {
@@ -138,8 +136,7 @@ function createBot() {
     return ctx.reply(
       `ℹ️ *درباره VeriaApp*\n\n` +
       `VeriaApp یک اکوسیستم هوشمند رسانه‌ای است برای:\n` +
-      `• دانلود یوتیوب با کیفیت بالا\n` +
-      `• فید توییتر اکانت‌های منتخب\n` +
+      `• دانلود یوتیوب، تیک‌تاک، X و...\n` +
       `• نقل‌قول روزانه اندیشمندان آزاد\n` +
       `• دستیار هوشمند با AI\n` +
       `• آخرین اخبار ایران\n\n` +
@@ -148,54 +145,8 @@ function createBot() {
     );
   });
 
-  // tweet URL → tweet card image (admin) + download offer (all users)
-  const TWEET_URL_RE = /https?:\/\/(twitter\.com|x\.com)\/(\w+)\/status\/(\d+)/i;
-  bot.hears(TWEET_URL_RE, async (ctx, next) => {
-    if (!(await isAdmin(ctx))) return next(); // non-admin → pass to media downloader
-    const match = ctx.message.text.match(TWEET_URL_RE);
-    if (!match) return;
-    const username = match[2];
-    const Parser = require('rss-parser');
-    const rssParser = new Parser({ timeout: 8000, headers: { 'User-Agent': 'Mozilla/5.0' } });
-    const NITTER = [
-      'https://nitter.poast.org', 'https://nitter.privacydev.net',
-      'https://nitter.catsarch.com', 'https://nitter.nl', 'https://nitter.it',
-    ];
-    let tweet = null;
-    for (const inst of NITTER) {
-      try {
-        const feed = await rssParser.parseURL(`${inst}/${username}/rss`);
-        if (feed?.items?.length) {
-          const item = feed.items[0];
-          tweet = {
-            text: (item.title || '').replace(/^RT @\S+:\s*/i, '').slice(0, 280),
-            username,
-            date: item.pubDate ? new Date(item.pubDate).toLocaleDateString('fa-IR') : '',
-            link: ctx.message.text,
-          };
-          break;
-        }
-      } catch (_) {}
-    }
-    if (!tweet) return ctx.reply('❌ دریافت توییت ناموفق بود.');
-    const imgBuffer = await generateTweetImage(tweet, THEME_KEYS[Math.floor(Math.random() * THEME_KEYS.length)]).catch(() => null);
-    if (!imgBuffer) return ctx.reply('❌ ساخت تصویر ناموفق بود.');
-
-    // Register download option for this tweet
-    const dlId = genId();
-    pendingDownloads.set(dlId, { url: ctx.message.text, userId: ctx.from.id, platform: 'twitter', ts: Date.now() });
-
-    await ctx.replyWithPhoto({ source: imgBuffer }, {
-      caption: `🐦 *@${username}*\n\n${tweet.text}\n\n[مشاهده توییت اصلی](${tweet.link})`,
-      parse_mode: 'Markdown',
-      ...Markup.inlineKeyboard([[
-        Markup.button.callback('🎬 دانلود ویدیو', `dl:v:${dlId}`),
-      ]]),
-    });
-  });
-
-  // Auto-detect media links (Instagram, TikTok, SoundCloud, Vimeo, Dailymotion, Pinterest, Twitter/X)
-  const MEDIA_URL_RE = /https?:\/\/(www\.)?(instagram\.com|tiktok\.com|vm\.tiktok\.com|soundcloud\.com|vimeo\.com|dailymotion\.com|dai\.ly|pinterest\.com|pin\.it|twitter\.com|x\.com)[^\s]*/i;
+  // Auto-detect media links (TikTok, SoundCloud, Vimeo, Dailymotion, Pinterest, Twitter/X)
+  const MEDIA_URL_RE = /https?:\/\/(www\.)?(tiktok\.com|vm\.tiktok\.com|soundcloud\.com|vimeo\.com|dailymotion\.com|dai\.ly|pinterest\.com|pin\.it|twitter\.com|x\.com)[^\s]*/i;
   bot.hears(MEDIA_URL_RE, handleMediaLink);
 
   // Custom slash commands from DB
@@ -226,7 +177,6 @@ function createBot() {
   // Inline keyboard callbacks
   bot.action(/^dl:/, downloadCallback);
   bot.action(/^yt:/, youtubeDownloadCallback);
-  bot.action(/^tw:/, twitterCallback);
   bot.action(/^ai:pick:/, aiPickCallback);
   bot.action(/^cfg:/, settingsCallback);
   bot.action(/^cnt:/, contentCallback);

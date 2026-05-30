@@ -100,10 +100,12 @@ async function handleYoutubeUrl(ctx) {
     const info = await innertube.getInfo(videoId);
     const details = info.basic_info;
     const duration = details.duration || 0;
+    const { isOwner } = require('../middleware/auth');
+    const owner = await isOwner(ctx);
 
-    if (duration > 600) {
+    if (!owner && duration > 900) {
       await ctx.telegram.editMessageText(ctx.chat.id, loadingMsg.message_id, null,
-        '❌ ویدیوهای بیشتر از ۱۰ دقیقه پشتیبانی نمی‌شن.');
+        '❌ ویدیوهای بیشتر از ۱۵ دقیقه پشتیبانی نمی‌شن.');
       return;
     }
 
@@ -222,7 +224,7 @@ async function getYoutubeVideoInfo(videoId) {
   const details = info.basic_info;
   const duration = details.duration || 0;
 
-  if (duration > 600) throw new Error('ویدیوهای بیشتر از ۱۰ دقیقه پشتیبانی نمی‌شن.');
+  if (duration > 900) throw new Error('ویدیوهای بیشتر از ۱۵ دقیقه پشتیبانی نمی‌شن.');
 
   const workable = await getWorkableFormats(info, innertube.session.player);
   if (workable.length === 0) throw new Error('هیچ فرمت قابل دانلودی پیدا نشد.');
