@@ -16,7 +16,7 @@ function fetchUrl(url, maxRedirects = 4) {
       },
       timeout: 15000,
     }, (res) => {
-      if ((res.statusCode === 301 || res.statusCode === 302 || res.statusCode === 307 || res.statusCode === 308)
+      if ((res.statusCode >= 301 && res.statusCode <= 308)
           && res.headers.location && maxRedirects > 0) {
         const next = res.headers.location.startsWith('http')
           ? res.headers.location
