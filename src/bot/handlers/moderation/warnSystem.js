@@ -2,7 +2,8 @@ const Warn = require('../../../database/models/Warn');
 const Settings = require('../../../database/models/Settings');
 const { isAdmin, isOwner } = require('../../middleware/auth');
 
-async function warnUser(ctx, targetId, groupId, reason, warnedBy) {
+async function warnUser(ctx, targetId, groupId, reason, warnedBy, opts = {}) {
+  const { messageText = null, firstName = null, username = null } = opts;
   const settings = await Settings.getSettings();
   const limit = settings.warnLimit || 3;
 
@@ -10,19 +11,44 @@ async function warnUser(ctx, targetId, groupId, reason, warnedBy) {
 
   const count = await Warn.count({ where: { telegramId: targetId, groupId } });
 
+  let action;
   if (count >= limit + 2) {
     await ctx.banChatMember(targetId).catch(() => {});
     await Warn.destroy({ where: { telegramId: targetId, groupId } });
-    return { action: 'ban', count };
+    action = 'ban';
   } else if (count >= limit) {
     const until = Math.floor(Date.now() / 1000) + 60 * 60;
     await ctx.restrictChatMember(targetId, {
       permissions: { can_send_messages: false },
       until_date: until,
     }).catch(() => {});
-    return { action: 'mute', count };
+    action = 'mute';
+  } else {
+    action = 'warn';
   }
 
+  // Log to ViolationLog (non-blocking)
+  try {
+    const ViolationLog = require('../../../database/models/ViolationLog');
+    const violationType =
+      reason.includes('اسپم') ? 'spam' :
+      reason.includes('کلمه') ? 'keyword' :
+      reason.includes('لینک') ? 'link' : 'other';
+    await ViolationLog.create({
+      telegramId: targetId,
+      firstName,
+      username,
+      groupId,
+      violationType,
+      messageText: messageText ? String(messageText).slice(0, 1000) : null,
+      action,
+      warnCount: count,
+      reason,
+    });
+  } catch (_) {}
+
+  if (action === 'ban')  return { action: 'ban', count };
+  if (action === 'mute') return { action: 'mute', count };
   return { action: 'warn', count, remaining: limit - count };
 }
 
@@ -35,7 +61,11 @@ async function warnCommand(ctx) {
 
   const targetId = reply.from.id;
   const reason = ctx.message.text.split(' ').slice(1).join(' ') || 'تخلف';
-  const result = await warnUser(ctx, targetId, ctx.chat.id, reason, ctx.from.id);
+  const result = await warnUser(ctx, targetId, ctx.chat.id, reason, ctx.from.id, {
+    messageText: reply.text || reply.caption || null,
+    firstName: reply.from.first_name || null,
+    username: reply.from.username || null,
+  });
 
   const name = reply.from.first_name || 'کاربر';
 

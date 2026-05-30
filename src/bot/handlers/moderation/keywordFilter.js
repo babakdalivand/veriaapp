@@ -32,7 +32,11 @@ async function keywordFilterMiddleware(ctx, next) {
   const userId = ctx.from.id;
   const groupId = ctx.chat.id;
   const botId = ctx.botInfo?.id ?? 0;
-  const result = await warnUser(ctx, userId, groupId, `کلمه ممنوع: ${matched}`, botId).catch(() => null);
+  const result = await warnUser(ctx, userId, groupId, `کلمه ممنوع: ${matched}`, botId, {
+    messageText: ctx.message?.text || ctx.message?.caption || null,
+    firstName: ctx.from?.first_name || null,
+    username: ctx.from?.username || null,
+  }).catch(() => null);
 
   if (result) {
     const name = ctx.from.first_name || 'کاربر';

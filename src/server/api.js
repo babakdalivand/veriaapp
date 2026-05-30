@@ -18,6 +18,7 @@ const { extractVideoId, isYoutubeUrl, getYoutubeVideoInfo, downloadYoutubeToChan
 const { resolveChannel, checkAllChannels } = require('../bot/handlers/youtubeMonitor');
 const YoutubeMonitor = require('../database/models/YoutubeMonitor');
 const Promotion = require('../database/models/Promotion');
+const ViolationLog = require('../database/models/ViolationLog');
 
 const router = Router();
 
@@ -457,6 +458,55 @@ router.put('/admin/users/:telegramId', express.json(), requireAdmin, async (req,
       ...(premiumExpiry !== undefined && { premiumExpiry }),
       ...(isBlocked !== undefined && { isBlocked }),
     });
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── Violations log ───────────────────────────────────────────────────────────
+
+// GET /api/admin/violations?telegramId=&limit=50&offset=0
+router.get('/admin/violations', requireAdmin, async (req, res) => {
+  if (!(await checkAdminRole(req.tgUserId))) return res.status(403).json({ error: 'forbidden' });
+  try {
+    const { telegramId, limit = 50, offset = 0 } = req.query;
+    const where = telegramId ? { telegramId } : {};
+    const rows = await ViolationLog.findAll({
+      where,
+      order: [['createdAt', 'DESC']],
+      limit: Math.min(parseInt(limit) || 50, 200),
+      offset: parseInt(offset) || 0,
+    });
+    res.json(rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// DELETE /api/admin/violations/:id  — حذف یک رکورد لاگ
+router.delete('/admin/violations/:id', requireAdmin, async (req, res) => {
+  if (!(await checkAdminRole(req.tgUserId))) return res.status(403).json({ error: 'forbidden' });
+  await ViolationLog.destroy({ where: { id: req.params.id } });
+  res.json({ ok: true });
+});
+
+// POST /api/admin/violations/unwarn/:telegramId  — حذف یک اخطار از Warn table
+router.post('/admin/violations/unwarn/:telegramId', express.json(), requireAdmin, async (req, res) => {
+  if (!(await checkAdminRole(req.tgUserId))) return res.status(403).json({ error: 'forbidden' });
+  try {
+    const last = await Warn.findOne({
+      where: { telegramId: req.params.telegramId },
+      order: [['createdAt', 'DESC']],
+    });
+    if (last) await last.destroy();
+    const warnCount = await Warn.count({ where: { telegramId: req.params.telegramId } });
+    res.json({ ok: true, warnCount });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// DELETE /api/admin/violations/user/:telegramId  — پاک‌سازی کامل اخطارها
+router.delete('/admin/violations/user/:telegramId', requireAdmin, async (req, res) => {
+  if (!(await checkAdminRole(req.tgUserId))) return res.status(403).json({ error: 'forbidden' });
+  try {
+    await ViolationLog.destroy({ where: { telegramId: req.params.telegramId } });
+    await Warn.destroy({ where: { telegramId: req.params.telegramId } });
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });

@@ -171,6 +171,7 @@ async function connectDB() {
     require('./models/ScheduledPost');
     require('./models/YoutubeMonitor');
     require('./models/Promotion');
+    require('./models/ViolationLog');
     await sequelize.sync();
     // Add new columns that may not exist yet (safe, idempotent)
     await sequelize.query(`ALTER TABLE Users ADD COLUMN IF NOT EXISTS premiumExpiry DATETIME NULL`).catch(() => {});

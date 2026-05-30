@@ -44,7 +44,11 @@ async function antiSpamMiddleware(ctx, next) {
     messageHistory.delete(key);
 
     const botId = ctx.botInfo?.id ?? 0;
-    const result = await warnUser(ctx, userId, groupId, 'اسپم', botId).catch(() => null);
+    const result = await warnUser(ctx, userId, groupId, 'اسپم', botId, {
+      messageText: ctx.message?.text || ctx.message?.caption || null,
+      firstName: ctx.from?.first_name || null,
+      username: ctx.from?.username || null,
+    }).catch(() => null);
     if (result) {
       const name = ctx.from.first_name || 'کاربر';
       if (result.action === 'ban') {

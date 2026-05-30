@@ -1,28 +1,32 @@
-/* ── VeriaApp Premium Dark Theme ─────────────────────────── */
+/* ── VeriaApp — Inspired by persianatheists.com ──────────── */
 :root {
-  --bg:        #1c1c2e;
-  --bg-page:   #1f1f35;
-  --bg-card:   #272744;
-  --bg-card2:  #2e2e4e;
-  --bg-input:  #23233a;
+  --bg:        #14110f;
+  --bg-page:   #1a1714;
+  --bg-card:   #252220;
+  --bg-card2:  #2e2a27;
+  --bg-input:  #201d1a;
+  --orange:    #eb5e28;
+  --orange-dim: rgba(235,94,40,.18);
+  --orange-glow: 0 0 22px rgba(235,94,40,.32);
   --blue:      #5aa0ff;
-  --blue-dim:  rgba(90,160,255,.22);
-  --blue-glow: 0 0 22px rgba(90,160,255,.28);
+  --blue-dim:  rgba(90,160,255,.20);
+  --blue-glow: 0 0 18px rgba(90,160,255,.25);
   --gold:      #d4aa35;
-  --gold-dim:  rgba(212,170,53,.22);
+  --gold-dim:  rgba(212,170,53,.20);
   --gold-glow: 0 0 22px rgba(212,170,53,.25);
   --green:     #4ec760;
   --red:       #ff6b6b;
-  --t1: #f2f2ff;
-  --t2: #c0c0e0;
-  --t3: #9090c0;
-  --b1: rgba(255,255,255,.13);
-  --b2: rgba(255,255,255,.20);
-  --b-blue: rgba(90,160,255,.35);
-  --b-gold: rgba(212,170,53,.35);
+  --t1: #e8e2d9;
+  --t2: #ccc5b9;
+  --t3: #8c857d;
+  --b1: rgba(255,255,255,.09);
+  --b2: rgba(255,255,255,.16);
+  --b-orange: rgba(235,94,40,.35);
+  --b-blue:   rgba(90,160,255,.30);
+  --b-gold:   rgba(212,170,53,.35);
   --r:  14px;
   --r2: 20px;
-  --shadow: 0 6px 28px rgba(0,0,0,.50);
+  --shadow: 0 6px 28px rgba(0,0,0,.55);
   --transition: 200ms cubic-bezier(.4,0,.2,1);
 }
 
@@ -72,8 +76,8 @@ body {
 }
 
 .card-glow-blue {
-  border-color: var(--b-blue);
-  box-shadow: var(--shadow), var(--blue-glow);
+  border-color: var(--b-orange);
+  box-shadow: var(--shadow), var(--orange-glow);
 }
 
 .card-glow-gold {
@@ -99,9 +103,9 @@ body {
 .btn:active { transform: scale(.96); }
 
 .btn-blue {
-  background: var(--blue);
+  background: var(--orange);
   color: #fff;
-  box-shadow: 0 4px 16px rgba(61,139,255,.35);
+  box-shadow: 0 4px 16px rgba(235,94,40,.35);
 }
 .btn-blue:hover { filter: brightness(1.1); }
 
@@ -129,11 +133,11 @@ body {
   font-weight: 700;
   letter-spacing: .3px;
 }
-.badge-user    { background: rgba(255,255,255,.1);  color: var(--t2); }
+.badge-user    { background: rgba(255,255,255,.08); color: var(--t2); }
 .badge-vip     { background: var(--gold-dim); border:1px solid var(--b-gold); color: var(--gold); }
 .badge-premium { background: linear-gradient(90deg,#c9a02a,#e2b93b); color:#0a0808; }
-.badge-admin   { background: var(--blue-dim);  border:1px solid var(--b-blue); color: var(--blue); }
-.badge-owner   { background: linear-gradient(90deg,#e94560,#c62a47); color:#fff; }
+.badge-admin   { background: var(--orange-dim); border:1px solid var(--b-orange); color: var(--orange); }
+.badge-owner   { background: linear-gradient(90deg,#eb5e28,#c04018); color:#fff; }
 
 /* ── Skeleton ─────────────────────────────────────────────── */
 .skeleton {

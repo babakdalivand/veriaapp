@@ -2,16 +2,17 @@ import { useState, useEffect, useCallback } from 'react'
 import './AdminPanel.css'
 
 const TABS = [
-  { id: 'settings',  label: '⚙️ تنظیمات' },
-  { id: 'announce',  label: '📢 اعلان' },
-  { id: 'promos',    label: '📣 تبلیغات' },
-  { id: 'payment',   label: '💳 پرداخت' },
-  { id: 'keywords',  label: '🔤 کلمات' },
-  { id: 'commands',  label: '🤖 دستورات' },
-  { id: 'quotes',    label: '💬 نقل‌قول' },
-  { id: 'scheduled', label: '📅 زمان‌بندی' },
-  { id: 'users',     label: '👥 کاربران' },
-  { id: 'ytmonitor', label: '📺 یوتیوب' },
+  { id: 'settings',   label: '⚙️ تنظیمات' },
+  { id: 'announce',   label: '📢 اعلان' },
+  { id: 'promos',     label: '📣 تبلیغات' },
+  { id: 'payment',    label: '💳 پرداخت' },
+  { id: 'keywords',   label: '🔤 کلمات' },
+  { id: 'commands',   label: '🤖 دستورات' },
+  { id: 'quotes',     label: '💬 نقل‌قول' },
+  { id: 'scheduled',  label: '📅 زمان‌بندی' },
+  { id: 'users',      label: '👥 کاربران' },
+  { id: 'violations', label: '🚨 تخلفات' },
+  { id: 'ytmonitor',  label: '📺 یوتیوب' },
 ]
 
 export default function AdminPanel({ me, qs: qsProp, initData: initDataProp }) {
@@ -47,8 +48,9 @@ export default function AdminPanel({ me, qs: qsProp, initData: initDataProp }) {
         {tab === 'commands' && <CommandsTab qs={qs} initData={initData} />}
         {tab === 'quotes'   && <QuotesTab qs={qs} initData={initData} />}
         {tab === 'scheduled' && <ScheduledTab qs={qs} initData={initData} />}
-        {tab === 'users'    && <UsersTab qs={qs} initData={initData} me={me} />}
-        {tab === 'ytmonitor' && <YtMonitorTab qs={qs} initData={initData} />}
+        {tab === 'users'      && <UsersTab qs={qs} initData={initData} me={me} />}
+        {tab === 'violations' && <ViolationsTab qs={qs} initData={initData} />}
+        {tab === 'ytmonitor'  && <YtMonitorTab qs={qs} initData={initData} />}
       </div>
       <div style={{ height: 80 }} />
     </div>
@@ -786,12 +788,21 @@ function UsersTab({ qs, initData, me }) {
   useEffect(() => { doSearch() }, [])
 
   async function updateUser(telegramId, patch) {
-    await fetch(`/api/admin/users/${telegramId}${qs}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...patch, initData }),
-    })
-    setUsers(p => p.map(u => u.telegramId === telegramId ? { ...u, ...patch } : u))
+    try {
+      const r = await fetch(`/api/admin/users/${telegramId}${qs}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...patch, initData }),
+      })
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}))
+        window?.Telegram?.WebApp?.showAlert('خطا: ' + (d.error || r.status))
+        return
+      }
+      setUsers(p => p.map(u => String(u.telegramId) === String(telegramId) ? { ...u, ...patch } : u))
+    } catch (e) {
+      window?.Telegram?.WebApp?.showAlert('خطا در اتصال: ' + e.message)
+    }
   }
 
   async function givePremium(u) {
@@ -1047,6 +1058,168 @@ function YtMonitorTab({ qs, initData }) {
           </div>
         </div>
       ))}
+    </div>
+  )
+}
+
+/* ── Violations ── */
+function ViolationsTab({ qs, initData }) {
+  const [logs,     setLogs]     = useState([])
+  const [loading,  setLoading]  = useState(true)
+  const [expanded, setExpanded] = useState(null)
+  const [msg,      setMsg]      = useState(null)
+
+  const showMsg = (type, text) => { setMsg({ type, text }); setTimeout(() => setMsg(null), 4000) }
+
+  const VTYPE_LABEL = { spam: '📨 اسپم', keyword: '🔤 کلمه ممنوع', link: '🔗 لینک', other: '⚠️ سایر' }
+  const ACTION_LABEL = { warn: '⚠️ اخطار', mute: '🔇 بی‌صدا', ban: '🚫 اخراج' }
+
+  async function load() {
+    setLoading(true)
+    const r = await fetch(`/api/admin/violations${qs}&limit=100`)
+    if (r.ok) setLogs(await r.json())
+    setLoading(false)
+  }
+
+  useEffect(() => { load() }, [qs])
+
+  // Group logs by telegramId
+  const grouped = logs.reduce((acc, log) => {
+    const key = String(log.telegramId)
+    if (!acc[key]) acc[key] = { telegramId: log.telegramId, firstName: log.firstName, username: log.username, logs: [] }
+    acc[key].logs.push(log)
+    return acc
+  }, {})
+  const users = Object.values(grouped)
+
+  async function deleteLog(id) {
+    await fetch(`/api/admin/violations/${id}${qs}`, { method: 'DELETE' })
+    setLogs(p => p.filter(l => l.id !== id))
+    showMsg('success', '✅ رکورد حذف شد')
+  }
+
+  async function unwarn(telegramId) {
+    const r = await fetch(`/api/admin/violations/unwarn/${telegramId}${qs}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ initData }),
+    })
+    const d = await r.json()
+    if (r.ok) showMsg('success', `✅ یک اخطار حذف شد — اخطارهای فعلی: ${d.warnCount}`)
+    else showMsg('error', '❌ خطا')
+  }
+
+  async function clearAll(telegramId) {
+    if (!confirm('همه اخطارها و لاگ‌های این کاربر پاک شوند؟')) return
+    await fetch(`/api/admin/violations/user/${telegramId}${qs}`, { method: 'DELETE' })
+    setLogs(p => p.filter(l => String(l.telegramId) !== String(telegramId)))
+    showMsg('success', '✅ پاک‌سازی کامل انجام شد')
+    setExpanded(null)
+  }
+
+  function fmtDate(d) {
+    return new Date(d).toLocaleString('fa-IR', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' })
+  }
+
+  return (
+    <div style={{ padding: '0 16px 16px' }}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 12, marginTop: 4 }}>
+        <div style={{ fontSize:'.85rem', fontWeight:700, color:'var(--t1)' }}>
+          🚨 تخلفات ({users.length} کاربر)
+        </div>
+        <button className="qa-btn-sm" onClick={load} style={{ fontSize:'.75rem' }}>🔄 بروزرسانی</button>
+      </div>
+
+      {msg && (
+        <div style={{
+          padding:'10px 14px', borderRadius:10, marginBottom:12, fontSize:'.85rem', fontWeight:700,
+          background: msg.type==='success' ? 'rgba(78,199,96,.12)' : 'rgba(255,107,107,.1)',
+          color: msg.type==='success' ? 'var(--green)' : 'var(--red)',
+        }}>{msg.text}</div>
+      )}
+
+      {loading ? <div className="ap-empty">در حال بارگذاری...</div>
+        : users.length === 0 ? <p className="ap-empty">هیچ تخلفی ثبت نشده</p>
+        : users.map(u => {
+          const isOpen = expanded === String(u.telegramId)
+          const total = u.logs.length
+          const lastAction = u.logs[0]?.action || 'warn'
+
+          return (
+            <div key={u.telegramId} className="card" style={{ marginBottom: 10, overflow:'hidden' }}>
+              {/* User header — clickable */}
+              <div style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 14px', cursor:'pointer' }}
+                onClick={() => setExpanded(isOpen ? null : String(u.telegramId))}>
+                <div style={{
+                  width:38, height:38, borderRadius:'50%', flexShrink:0,
+                  background: 'var(--orange-dim)', border:'1px solid var(--b-orange)',
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  fontWeight:700, color:'var(--orange)', fontSize:'1rem',
+                }}>
+                  {(u.firstName || '?')[0]?.toUpperCase()}
+                </div>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontWeight:700, color:'var(--t1)', fontSize:'.88rem' }}>
+                    {u.firstName || 'بدون نام'}
+                    {u.username && <span style={{ color:'var(--t3)', fontWeight:400 }}> @{u.username}</span>}
+                  </div>
+                  <div style={{ fontSize:'.7rem', color:'var(--t3)', marginTop:2 }}>
+                    {total} تخلف · آخرین: {ACTION_LABEL[lastAction] || lastAction}
+                  </div>
+                </div>
+                <div style={{ display:'flex', gap:6, flexShrink:0 }}>
+                  <button className="qa-btn-sm" onClick={e => { e.stopPropagation(); unwarn(u.telegramId) }}
+                    style={{ background:'rgba(212,170,53,.1)', border:'1px solid rgba(212,170,53,.3)', color:'var(--gold)', fontSize:'.7rem' }}>
+                    −اخطار
+                  </button>
+                  <button className="qa-btn-sm" onClick={e => { e.stopPropagation(); clearAll(u.telegramId) }}
+                    style={{ background:'rgba(255,107,107,.1)', border:'1px solid rgba(255,107,107,.25)', color:'var(--red)', fontSize:'.7rem' }}>
+                    پاک‌سازی
+                  </button>
+                </div>
+                <span style={{ color:'var(--t3)', fontSize:'.8rem', flexShrink:0 }}>{isOpen ? '▲' : '▼'}</span>
+              </div>
+
+              {/* Expanded violation list */}
+              {isOpen && (
+                <div style={{ borderTop:'1px solid var(--b1)' }}>
+                  {u.logs.map(log => (
+                    <div key={log.id} style={{
+                      padding:'10px 14px', borderBottom:'1px solid var(--b1)',
+                      display:'flex', gap:10, alignItems:'flex-start',
+                    }}>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ display:'flex', gap:8, alignItems:'center', marginBottom:4, flexWrap:'wrap' }}>
+                          <span style={{
+                            fontSize:'.68rem', padding:'2px 7px', borderRadius:10,
+                            background:'rgba(235,94,40,.1)', border:'1px solid rgba(235,94,40,.25)', color:'var(--orange)',
+                          }}>{VTYPE_LABEL[log.violationType] || log.violationType}</span>
+                          <span style={{
+                            fontSize:'.68rem', padding:'2px 7px', borderRadius:10,
+                            background:'rgba(255,255,255,.05)', color:'var(--t3)',
+                          }}>{ACTION_LABEL[log.action] || log.action}</span>
+                          <span style={{ fontSize:'.65rem', color:'var(--t3)' }}>{fmtDate(log.createdAt)}</span>
+                        </div>
+                        {log.reason && (
+                          <div style={{ fontSize:'.75rem', color:'var(--t2)', marginBottom:3 }}>دلیل: {log.reason}</div>
+                        )}
+                        {log.messageText && (
+                          <div style={{
+                            fontSize:'.72rem', color:'var(--t3)', direction:'rtl',
+                            background:'rgba(0,0,0,.2)', padding:'4px 8px', borderRadius:6,
+                            maxHeight:60, overflow:'hidden', wordBreak:'break-word',
+                          }}>«{log.messageText.slice(0,200)}{log.messageText.length>200?'...':''}»</div>
+                        )}
+                      </div>
+                      <button className="ap-kw-del" onClick={() => deleteLog(log.id)}
+                        style={{ flexShrink:0, marginTop:2 }}>✕</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )
+        })
+      }
     </div>
   )
 }
