@@ -5,6 +5,7 @@ const TABS = [
   { id: 'settings',  label: '⚙️ تنظیمات' },
   { id: 'announce',  label: '📢 اعلان' },
   { id: 'promos',    label: '📣 تبلیغات' },
+  { id: 'payment',   label: '💳 پرداخت' },
   { id: 'keywords',  label: '🔤 کلمات' },
   { id: 'commands',  label: '🤖 دستورات' },
   { id: 'quotes',    label: '💬 نقل‌قول' },
@@ -13,10 +14,10 @@ const TABS = [
   { id: 'ytmonitor', label: '📺 یوتیوب' },
 ]
 
-export default function AdminPanel({ me }) {
+export default function AdminPanel({ me, qs: qsProp, initData: initDataProp }) {
   const [tab, setTab] = useState('settings')
-  const initData = window?.Telegram?.WebApp?.initData || ''
-  const qs = `?initData=${encodeURIComponent(initData || 'dev')}`
+  const initData = initDataProp || window?.Telegram?.WebApp?.initData || ''
+  const qs = qsProp || `?initData=${encodeURIComponent(initData || 'dev')}`
 
   return (
     <div className="page">
@@ -38,11 +39,12 @@ export default function AdminPanel({ me }) {
         {tab === 'settings'  && <SettingsTab qs={qs} initData={initData} />}
         {tab === 'announce'  && <AnnouncementTab qs={qs} initData={initData} />}
         {tab === 'promos'    && <PromotionsTab qs={qs} initData={initData} />}
+        {tab === 'payment'   && <PaymentTab qs={qs} initData={initData} />}
         {tab === 'keywords'  && <KeywordsTab qs={qs} initData={initData} />}
         {tab === 'commands' && <CommandsTab qs={qs} initData={initData} />}
         {tab === 'quotes'   && <QuotesTab qs={qs} initData={initData} />}
         {tab === 'scheduled' && <ScheduledTab qs={qs} initData={initData} />}
-        {tab === 'users'    && <UsersTab qs={qs} initData={initData} />}
+        {tab === 'users'    && <UsersTab qs={qs} initData={initData} me={me} />}
         {tab === 'ytmonitor' && <YtMonitorTab qs={qs} initData={initData} />}
       </div>
       <div style={{ height: 80 }} />
@@ -269,6 +271,107 @@ function SettingsTab({ qs, initData }) {
         <button className="ap-save-btn" onClick={() => save({ welcomeMessage: s.welcomeMessage, warnLimit: Math.max(1, Math.min(10, parseInt(s.warnLimit) || 3)) })} disabled={saving}>
           {saving ? 'در حال ذخیره...' : '💾 ذخیره تنظیمات'}
         </button>
+      </div>
+
+      <p className="sec-title">📋 قوانین گروه و کانال</p>
+      <div className="card">
+        <div style={{ padding: '12px 16px 4px' }}>
+          <div className="ap-setting-sub" style={{ marginBottom: 8 }}>در صفحه اول همه کاربران نمایش داده می‌شود</div>
+          <textarea className="ap-input" rows={8} value={s.rulesText || ''} dir="rtl"
+            placeholder={'۱. احترام متقابل را رعایت کنید\n۲. تبلیغات ممنوع\n۳. ...'}
+            onChange={e => setS(p => ({ ...p, rulesText: e.target.value }))} />
+        </div>
+        <button className="ap-save-btn" onClick={() => save({ rulesText: s.rulesText })} disabled={saving}>
+          {saving ? 'در حال ذخیره...' : '💾 ذخیره قوانین'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+/* ── Payment Settings ── */
+function PaymentTab({ qs, initData }) {
+  const [form, setForm] = useState({ paypalUrl: '', walletBTC: '', walletUSDT: '', premiumPrice: 100 })
+  const [saving, setSaving] = useState(false)
+  const [msg, setMsg] = useState('')
+
+  useEffect(() => {
+    fetch(`/api/payment-info${qs}`).then(r => r.json()).then(d => {
+      setForm({
+        paypalUrl:    d.paypalUrl    || '',
+        walletBTC:    d.walletBTC    || '',
+        walletUSDT:   d.walletUSDT   || '',
+        premiumPrice: d.premiumPrice || 100,
+      })
+    }).catch(() => {})
+  }, [qs])
+
+  async function save() {
+    setSaving(true); setMsg('')
+    try {
+      const r = await fetch(`/api/admin/payment-settings${qs}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...form, premiumPrice: parseInt(form.premiumPrice) || 100, initData }),
+      })
+      if (r.ok) setMsg('✅ ذخیره شد')
+      else setMsg('❌ خطا در ذخیره')
+    } catch { setMsg('❌ خطا در اتصال') }
+    setSaving(false)
+    setTimeout(() => setMsg(''), 4000)
+  }
+
+  return (
+    <div>
+      <p className="sec-title">تنظیمات پرداخت پریمیوم</p>
+      <div className="card" style={{ margin: '0 16px' }}>
+        <div style={{ padding: '12px 16px 8px' }}>
+          <div className="ap-setting-sub" style={{ marginBottom: 14 }}>
+            آدرس‌های پرداخت که کاربران هنگام خرید پریمیوم می‌بینند. هر فیلد که خالی باشد نمایش داده نمی‌شود.
+          </div>
+
+          <div className="ap-field">
+            <label>💰 قیمت پریمیوم (ستاره تلگرام)</label>
+            <input type="number" min={1} value={form.premiumPrice} dir="ltr"
+              onChange={e => setForm(p => ({ ...p, premiumPrice: e.target.value }))}
+              placeholder="مثال: 100" />
+          </div>
+
+          <div className="ap-field">
+            <label>💳 لینک PayPal</label>
+            <input value={form.paypalUrl} dir="ltr"
+              onChange={e => setForm(p => ({ ...p, paypalUrl: e.target.value }))}
+              placeholder="https://paypal.me/yourusername" />
+          </div>
+
+          <div className="ap-field">
+            <label>₿ آدرس کیف پول Bitcoin (BTC)</label>
+            <input value={form.walletBTC} dir="ltr"
+              onChange={e => setForm(p => ({ ...p, walletBTC: e.target.value }))}
+              placeholder="bc1q..." />
+          </div>
+
+          <div className="ap-field">
+            <label>💵 آدرس کیف پول USDT (TRC20)</label>
+            <input value={form.walletUSDT} dir="ltr"
+              onChange={e => setForm(p => ({ ...p, walletUSDT: e.target.value }))}
+              placeholder="T..." />
+          </div>
+
+          {msg && <div style={{ fontSize: '.8rem', color: msg.startsWith('✅') ? '#4caf50' : '#f85149', marginBottom: 8 }}>{msg}</div>}
+        </div>
+        <button className="ap-save-btn" onClick={save} disabled={saving}>
+          {saving ? 'در حال ذخیره...' : '💾 ذخیره تنظیمات پرداخت'}
+        </button>
+      </div>
+
+      <div className="card" style={{ margin: '12px 16px 0', padding: '12px 16px' }}>
+        <div style={{ fontSize: '.78rem', color: 'var(--t3)', lineHeight: 1.7 }}>
+          <div style={{ fontWeight: 700, color: 'var(--t2)', marginBottom: 6 }}>📌 راهنما</div>
+          <div>• کاربران پس از کلیک «خرید پریمیوم» این روش‌های پرداخت را می‌بینند</div>
+          <div>• پس از دریافت پرداخت، از پنل کاربران نقش پریمیوم را دستی تخصیص دهید</div>
+          <div>• برای USDT از شبکه TRC20 (ترون) استفاده کنید</div>
+        </div>
       </div>
     </div>
   )
@@ -665,7 +768,7 @@ function ScheduledTab({ qs, initData }) {
 }
 
 /* ── Users ── */
-function UsersTab({ qs, initData }) {
+function UsersTab({ qs, initData, me }) {
   const [users, setUsers] = useState([])
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(false)
@@ -723,7 +826,8 @@ function UsersTab({ qs, initData }) {
               )}
             </div>
             <div className="ap-user-btns">
-              {u.role !== 'premium' && u.role !== 'owner' && (
+              {/* پریمیوم */}
+              {u.role !== 'premium' && u.role !== 'owner' && u.role !== 'admin' && (
                 <button className="qa-btn-sm" style={{ background:'rgba(201,160,42,.1)', border:'1px solid rgba(201,160,42,.25)', color:'#c9a02a' }}
                   onClick={() => givePremium(u)}>⭐ پریمیوم</button>
               )}
@@ -731,6 +835,15 @@ function UsersTab({ qs, initData }) {
                 <button className="qa-btn-sm qa-btn-toggle" onClick={() => updateUser(u.telegramId, { role:'user', premiumExpiry:null })}>
                   لغو پریمیوم
                 </button>
+              )}
+              {/* ادمین — فقط owner می‌تونه بده/بگیره */}
+              {me?.role === 'owner' && u.role !== 'owner' && u.role !== 'admin' && (
+                <button className="qa-btn-sm" style={{ background:'rgba(139,92,246,.1)', border:'1px solid rgba(139,92,246,.25)', color:'#8b5cf6' }}
+                  onClick={() => updateUser(u.telegramId, { role:'admin' })}>🛠 ادمین</button>
+              )}
+              {me?.role === 'owner' && u.role === 'admin' && (
+                <button className="qa-btn-sm" style={{ background:'rgba(248,81,73,.1)', border:'1px solid rgba(248,81,73,.2)', color:'#f85149' }}
+                  onClick={() => updateUser(u.telegramId, { role:'user' })}>لغو ادمین</button>
               )}
               <button className="qa-btn-sm" style={{ background: u.isBlocked ? 'rgba(61,139,255,.1)' : 'rgba(248,81,73,.1)', border: `1px solid ${u.isBlocked ? 'rgba(61,139,255,.25)' : 'rgba(248,81,73,.2)'}`, color: u.isBlocked ? '#3d8bff' : '#f85149' }}
                 onClick={() => updateUser(u.telegramId, { isBlocked: !u.isBlocked })}>

@@ -4,6 +4,7 @@ const Quote = require('../../database/models/Quote');
 const Settings = require('../../database/models/Settings');
 const schedulerState = require('../schedulerState');
 const { checkAllChannels } = require('./youtubeMonitor');
+const { checkWebsite }    = require('./websiteMonitor');
 
 async function postDailyQuote(bot) {
   try {
@@ -40,6 +41,10 @@ function startScheduler(bot) {
   // Check YouTube monitored channels every 15 minutes
   cron.schedule('*/15 * * * *', () => checkAllChannels(bot).catch(e =>
     console.error('[YTMonitor] cron error:', e.message)
+  ));
+  // Check website (persianatheists.com) every 30 minutes
+  cron.schedule('*/30 * * * *', () => checkWebsite(bot).catch(e =>
+    console.error('[WebsiteMonitor] cron error:', e.message)
   ));
   console.log('[Scheduler] Quote scheduler started (05:00 UTC daily)');
 }

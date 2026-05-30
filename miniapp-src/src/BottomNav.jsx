@@ -8,10 +8,11 @@ const TABS = [
   { id: 'profile',   icon: '◉',  label: 'پروفایل' },
 ]
 
-const ADMIN_TAB = { id: 'admin', icon: '🛠', label: 'ادمین' }
+const ADMIN_TAB  = { id: 'admin', icon: '🛠', label: 'ادمین' }
+const ADMIN_TABS = TABS.filter(t => t.id !== 'quotes')
 
 export default function BottomNav({ current, onChange, isAdmin }) {
-  const tabs = isAdmin ? [...TABS, ADMIN_TAB] : TABS
+  const tabs = isAdmin ? [...ADMIN_TABS, ADMIN_TAB] : TABS
 
   return (
     <nav className="bottom-nav">

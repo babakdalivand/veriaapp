@@ -16,6 +16,12 @@ const Settings = sequelize.define('Settings', {
   announcementActive: { type: DataTypes.BOOLEAN, defaultValue: false },
   announcementTitle:  { type: DataTypes.STRING(200), allowNull: true },
   announcementText:   { type: DataTypes.TEXT, allowNull: true },
+  rulesText:            { type: DataTypes.TEXT, allowNull: true },
+  websitePostedGuids:   { type: DataTypes.TEXT, defaultValue: '[]' },
+  paypalUrl:            { type: DataTypes.STRING(500), allowNull: true },
+  walletBTC:            { type: DataTypes.STRING(200), allowNull: true },
+  walletUSDT:           { type: DataTypes.STRING(200), allowNull: true },
+  premiumPrice:         { type: DataTypes.INTEGER, defaultValue: 100 },
 });
 
 // helper to get or create the single settings row

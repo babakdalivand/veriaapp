@@ -183,6 +183,12 @@ async function connectDB() {
     await sequelize.query(`ALTER TABLE Settings ADD COLUMN IF NOT EXISTS announcementActive TINYINT(1) NOT NULL DEFAULT 0`).catch(() => {});
     await sequelize.query(`ALTER TABLE Settings ADD COLUMN IF NOT EXISTS announcementTitle VARCHAR(200) NULL`).catch(() => {});
     await sequelize.query(`ALTER TABLE Settings ADD COLUMN IF NOT EXISTS announcementText TEXT NULL`).catch(() => {});
+    await sequelize.query(`ALTER TABLE Settings ADD COLUMN IF NOT EXISTS rulesText TEXT NULL`).catch(() => {});
+    await sequelize.query(`ALTER TABLE Settings ADD COLUMN IF NOT EXISTS websitePostedGuids TEXT NULL`).catch(() => {});
+    await sequelize.query(`ALTER TABLE Settings ADD COLUMN IF NOT EXISTS paypalUrl VARCHAR(500) NULL`).catch(() => {});
+    await sequelize.query(`ALTER TABLE Settings ADD COLUMN IF NOT EXISTS walletBTC VARCHAR(200) NULL`).catch(() => {});
+    await sequelize.query(`ALTER TABLE Settings ADD COLUMN IF NOT EXISTS walletUSDT VARCHAR(200) NULL`).catch(() => {});
+    await sequelize.query(`ALTER TABLE Settings ADD COLUMN IF NOT EXISTS premiumPrice INT NOT NULL DEFAULT 100`).catch(() => {});
     // Seed quotes table if empty
     const count = await Quote.count().catch(() => -1);
     if (count === 0) {

@@ -219,6 +219,25 @@ export default function Dashboard({ me, stats, meLoading, statsLoading, tgUser, 
         </>
       )}
 
+      {/* ── قوانین — کاربر عادی ─────────────────────────── */}
+      {!isAdmin && homeData?.rules && (
+        <div style={{ padding: '0 16px 4px' }}>
+          <p className="sec-title" style={{ paddingRight: 0 }}>📋 قوانین گروه و کانال</p>
+          <div className="card" style={{
+            padding: '12px 14px',
+            background: 'rgba(201,160,42,.05)',
+            border: '1px solid rgba(201,160,42,.15)',
+            borderRadius: 12,
+          }}>
+            <pre style={{
+              margin: 0, fontSize: '.8rem', color: 'var(--t1)',
+              lineHeight: 1.8, direction: 'rtl', whiteSpace: 'pre-wrap',
+              fontFamily: 'inherit',
+            }}>{homeData.rules}</pre>
+          </div>
+        </div>
+      )}
+
       {/* ── تماس با ادمین — کاربر عادی ──────────────────── */}
       {!isAdmin && (
         <div style={{ padding: '4px 16px 16px' }}>

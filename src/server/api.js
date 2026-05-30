@@ -578,6 +578,7 @@ router.get('/home-data', requireAdmin, async (req, res) => {
       title: settings.announcementTitle,
       text:  settings.announcementText,
     } : null;
+    const rules = settings.rulesText || null;
     const promotions = await Promotion.findAll({
       where: { isActive: true },
       order: [['sortOrder', 'ASC'], ['createdAt', 'DESC']],
@@ -587,7 +588,7 @@ router.get('/home-data', requireAdmin, async (req, res) => {
     if (promotions.length) {
       await Promotion.increment('viewCount', { where: { id: promotions.map(p => p.id) } });
     }
-    res.json({ announcement, promotions });
+    res.json({ announcement, promotions, rules });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -627,6 +628,26 @@ router.put('/admin/promotions/:id', express.json(), requireAdmin, async (req, re
 router.delete('/admin/promotions/:id', express.json(), requireAdmin, async (req, res) => {
   if (!(await checkAdminRole(req.tgUserId))) return res.status(403).json({ error: 'forbidden' });
   await Promotion.destroy({ where: { id: req.params.id } });
+  res.json({ ok: true });
+});
+
+// GET /api/payment-info  — public: get payment addresses for premium purchase
+router.get('/payment-info', requireAdmin, async (req, res) => {
+  const s = await Settings.getSettings().catch(() => null);
+  res.json({
+    paypalUrl:    s?.paypalUrl    || null,
+    walletBTC:    s?.walletBTC    || null,
+    walletUSDT:   s?.walletUSDT   || null,
+    premiumPrice: s?.premiumPrice || 100,
+  });
+});
+
+// PUT /admin/payment-settings  — save payment info
+router.put('/admin/payment-settings', express.json(), requireAdmin, async (req, res) => {
+  if (!(await checkAdminRole(req.tgUserId))) return res.status(403).json({ error: 'forbidden' });
+  const { paypalUrl, walletBTC, walletUSDT, premiumPrice } = req.body;
+  const s = await Settings.getSettings();
+  await s.update({ paypalUrl, walletBTC, walletUSDT, premiumPrice: parseInt(premiumPrice) || 100 });
   res.json({ ok: true });
 });
 
