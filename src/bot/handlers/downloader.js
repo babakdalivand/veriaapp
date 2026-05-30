@@ -5,6 +5,7 @@ const { spawn } = require('child_process');
 const { Markup } = require('telegraf');
 
 const MAX_SIZE_MB = 45;
+const PYTHON_BIN = process.env.PYTHON_BIN || '/usr/bin/python3';
 
 // Short-lived store: id -> { url, userId, platform }
 const pendingDownloads = new Map();
@@ -70,7 +71,7 @@ function ytdlpDownload(mediaUrl, destDir, audioOnly = false) {
     let output = '';
     let errOutput = '';
 
-    const proc = spawn('python3', args, { timeout: 120000 });
+    const proc = spawn(PYTHON_BIN, args, { timeout: 120000 });
 
     proc.stdout.on('data', d => { output += d.toString(); });
     proc.stderr.on('data', d => { errOutput += d.toString(); });

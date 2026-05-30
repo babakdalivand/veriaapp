@@ -13,7 +13,7 @@ const Parser = require('rss-parser');
 const botState = require('../bot/botState');
 const schedulerState = require('../bot/schedulerState');
 const { BOT_TOKEN } = require('../config');
-const { detectPlatform, PLATFORM_INFO, callCobalt, downloadToChannel, downloadToUser } = require('../bot/handlers/downloader');
+const { detectPlatform, PLATFORM_INFO, downloadToChannel, downloadToUser } = require('../bot/handlers/downloader');
 const { extractVideoId, isYoutubeUrl, getYoutubeVideoInfo, downloadYoutubeToChannel } = require('../bot/handlers/youtube');
 const { resolveChannel, checkAllChannels } = require('../bot/handlers/youtubeMonitor');
 const YoutubeMonitor = require('../database/models/YoutubeMonitor');
@@ -828,19 +828,8 @@ router.post('/download/preview', express.json(), requireAdmin, async (req, res) 
   if (!url) return res.status(400).json({ error: 'url required' });
   const platform = detectPlatform(url);
   if (!platform) return res.status(400).json({ error: 'unsupported platform' });
-  try {
-    const result = await callCobalt(url, false);
-    if (result.status === 'error') return res.status(400).json({ error: result.error?.code || 'cobalt error' });
-    res.json({
-      status: result.status,
-      url: result.url,
-      filename: result.filename,
-      platform,
-      picker: result.picker || null,
-    });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
+  const info = PLATFORM_INFO[platform] || { name: platform, emoji: '📥' };
+  res.json({ status: 'ok', platform, platformName: info.name, emoji: info.emoji });
 });
 
 module.exports = router;
