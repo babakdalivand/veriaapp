@@ -17,6 +17,7 @@ const { detectPlatform, PLATFORM_INFO, callCobalt, downloadToChannel, downloadTo
 const { extractVideoId, isYoutubeUrl, getYoutubeVideoInfo, downloadYoutubeToChannel } = require('../bot/handlers/youtube');
 const { resolveChannel, checkAllChannels } = require('../bot/handlers/youtubeMonitor');
 const YoutubeMonitor = require('../database/models/YoutubeMonitor');
+const Promotion = require('../database/models/Promotion');
 
 const router = Router();
 
@@ -565,6 +566,78 @@ router.post('/admin/youtube-monitor/:id/test', express.json(), requireAdmin, asy
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
+});
+
+// ── Promotions & Announcements ───────────────────────────────────────────────
+
+// GET /api/home-data  — public: announcement + active promotions
+router.get('/home-data', requireAdmin, async (req, res) => {
+  try {
+    const settings = await Settings.getSettings();
+    const announcement = settings.announcementActive ? {
+      title: settings.announcementTitle,
+      text:  settings.announcementText,
+    } : null;
+    const promotions = await Promotion.findAll({
+      where: { isActive: true },
+      order: [['sortOrder', 'ASC'], ['createdAt', 'DESC']],
+      attributes: ['id', 'title', 'imageUrl', 'linkUrl'],
+    });
+    // Increment view counts
+    if (promotions.length) {
+      await Promotion.increment('viewCount', { where: { id: promotions.map(p => p.id) } });
+    }
+    res.json({ announcement, promotions });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/promotions/:id/click  — track click
+router.post('/promotions/:id/click', async (req, res) => {
+  await Promotion.increment('clickCount', { where: { id: req.params.id } }).catch(() => {});
+  res.json({ ok: true });
+});
+
+// ── Admin: Promotions CRUD ────────────────────────────────────────────────────
+
+router.get('/admin/promotions', requireAdmin, async (req, res) => {
+  if (!(await checkAdminRole(req.tgUserId))) return res.status(403).json({ error: 'forbidden' });
+  const rows = await Promotion.findAll({ order: [['sortOrder', 'ASC'], ['createdAt', 'DESC']] });
+  res.json(rows);
+});
+
+router.post('/admin/promotions', express.json(), requireAdmin, async (req, res) => {
+  if (!(await checkAdminRole(req.tgUserId))) return res.status(403).json({ error: 'forbidden' });
+  const { title, description, imageUrl, linkUrl, sortOrder } = req.body;
+  if (!title || !linkUrl) return res.status(400).json({ error: 'عنوان و لینک الزامی است' });
+  const p = await Promotion.create({ title, description, imageUrl, linkUrl, sortOrder: sortOrder || 0 });
+  res.json(p);
+});
+
+router.put('/admin/promotions/:id', express.json(), requireAdmin, async (req, res) => {
+  if (!(await checkAdminRole(req.tgUserId))) return res.status(403).json({ error: 'forbidden' });
+  const p = await Promotion.findByPk(req.params.id);
+  if (!p) return res.status(404).json({ error: 'پیدا نشد' });
+  const { title, description, imageUrl, linkUrl, isActive, sortOrder } = req.body;
+  await p.update({ title, description, imageUrl, linkUrl, isActive, sortOrder });
+  res.json(p);
+});
+
+router.delete('/admin/promotions/:id', express.json(), requireAdmin, async (req, res) => {
+  if (!(await checkAdminRole(req.tgUserId))) return res.status(403).json({ error: 'forbidden' });
+  await Promotion.destroy({ where: { id: req.params.id } });
+  res.json({ ok: true });
+});
+
+// ── Admin: Announcement ───────────────────────────────────────────────────────
+
+router.put('/admin/announcement', express.json(), requireAdmin, async (req, res) => {
+  if (!(await checkAdminRole(req.tgUserId))) return res.status(403).json({ error: 'forbidden' });
+  const { announcementActive, announcementTitle, announcementText } = req.body;
+  const settings = await Settings.getSettings();
+  await settings.update({ announcementActive, announcementTitle, announcementText });
+  res.json({ ok: true });
 });
 
 // ── Download API ─────────────────────────────────────────────────────────────

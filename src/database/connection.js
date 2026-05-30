@@ -170,6 +170,7 @@ async function connectDB() {
     require('./models/BotCommand');
     require('./models/ScheduledPost');
     require('./models/YoutubeMonitor');
+    require('./models/Promotion');
     await sequelize.sync();
     // Add new columns that may not exist yet (safe, idempotent)
     await sequelize.query(`ALTER TABLE Users ADD COLUMN IF NOT EXISTS premiumExpiry DATETIME NULL`).catch(() => {});
@@ -179,6 +180,9 @@ async function connectDB() {
     await sequelize.query(`ALTER TABLE Settings MODIFY COLUMN mainGroupId VARCHAR(255) NULL`).catch(() => {});
     await sequelize.query(`ALTER TABLE Settings ADD COLUMN IF NOT EXISTS groupIds TEXT NULL`).catch(() => {});
     await sequelize.query(`ALTER TABLE Settings ADD COLUMN IF NOT EXISTS twitterAccounts TEXT NULL`).catch(() => {});
+    await sequelize.query(`ALTER TABLE Settings ADD COLUMN IF NOT EXISTS announcementActive TINYINT(1) NOT NULL DEFAULT 0`).catch(() => {});
+    await sequelize.query(`ALTER TABLE Settings ADD COLUMN IF NOT EXISTS announcementTitle VARCHAR(200) NULL`).catch(() => {});
+    await sequelize.query(`ALTER TABLE Settings ADD COLUMN IF NOT EXISTS announcementText TEXT NULL`).catch(() => {});
     // Seed quotes table if empty
     const count = await Quote.count().catch(() => -1);
     if (count === 0) {

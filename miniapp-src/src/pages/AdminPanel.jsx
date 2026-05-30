@@ -3,6 +3,8 @@ import './AdminPanel.css'
 
 const TABS = [
   { id: 'settings',  label: '⚙️ تنظیمات' },
+  { id: 'announce',  label: '📢 اعلان' },
+  { id: 'promos',    label: '📣 تبلیغات' },
   { id: 'keywords',  label: '🔤 کلمات' },
   { id: 'commands',  label: '🤖 دستورات' },
   { id: 'quotes',    label: '💬 نقل‌قول' },
@@ -33,8 +35,10 @@ export default function AdminPanel({ me }) {
       </div>
 
       <div style={{ marginTop: 12 }}>
-        {tab === 'settings' && <SettingsTab qs={qs} initData={initData} />}
-        {tab === 'keywords' && <KeywordsTab qs={qs} initData={initData} />}
+        {tab === 'settings'  && <SettingsTab qs={qs} initData={initData} />}
+        {tab === 'announce'  && <AnnouncementTab qs={qs} initData={initData} />}
+        {tab === 'promos'    && <PromotionsTab qs={qs} initData={initData} />}
+        {tab === 'keywords'  && <KeywordsTab qs={qs} initData={initData} />}
         {tab === 'commands' && <CommandsTab qs={qs} initData={initData} />}
         {tab === 'quotes'   && <QuotesTab qs={qs} initData={initData} />}
         {tab === 'scheduled' && <ScheduledTab qs={qs} initData={initData} />}
@@ -927,6 +931,235 @@ function YtMonitorTab({ qs, initData }) {
           </div>
         </div>
       ))}
+    </div>
+  )
+}
+
+/* ── Announcement ── */
+function AnnouncementTab({ qs, initData }) {
+  const [s, setS]       = useState({ announcementActive: false, announcementTitle: '', announcementText: '' })
+  const [saving, setSaving] = useState(false)
+  const [msg, setMsg]   = useState('')
+
+  useEffect(() => {
+    fetch(`/api/admin/settings${qs}`).then(r => r.json()).then(d => {
+      setS({
+        announcementActive: !!d.announcementActive,
+        announcementTitle:  d.announcementTitle || '',
+        announcementText:   d.announcementText  || '',
+      })
+    }).catch(() => {})
+  }, [qs])
+
+  async function save() {
+    setSaving(true); setMsg('')
+    try {
+      const r = await fetch(`/api/admin/announcement${qs}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...s, initData }),
+      })
+      if (r.ok) setMsg('✅ ذخیره شد')
+      else setMsg('❌ خطا')
+    } catch { setMsg('❌ خطا در اتصال') }
+    setSaving(false)
+    setTimeout(() => setMsg(''), 3000)
+  }
+
+  return (
+    <div>
+      <p className="sec-title">اعلان عمومی</p>
+      <div className="card" style={{ margin: '0 16px' }}>
+        <div style={{ padding: '12px 16px 8px' }}>
+          <div className="ap-setting-row" style={{ marginBottom: 12 }}>
+            <div>
+              <div className="ap-setting-label">نمایش اعلان</div>
+              <div className="ap-setting-sub">در صفحه اول همه کاربران نشان داده می‌شود</div>
+            </div>
+            <button className={`ap-toggle ${s.announcementActive ? 'on' : 'off'}`}
+              onClick={() => setS(p => ({ ...p, announcementActive: !p.announcementActive }))} />
+          </div>
+          <div className="ap-field">
+            <label>عنوان اعلان</label>
+            <input value={s.announcementTitle} onChange={e => setS(p => ({ ...p, announcementTitle: e.target.value }))}
+              placeholder="مثال: اطلاعیه مهم" dir="rtl" />
+          </div>
+          <div className="ap-field">
+            <label>متن اعلان</label>
+            <textarea rows={4} value={s.announcementText}
+              onChange={e => setS(p => ({ ...p, announcementText: e.target.value }))}
+              placeholder="متن اعلان که به کاربران نمایش داده می‌شود..." dir="rtl" />
+          </div>
+          {msg && <div style={{ fontSize: '.8rem', color: msg.startsWith('✅') ? '#4caf50' : '#f85149', marginBottom: 8 }}>{msg}</div>}
+        </div>
+        <button className="ap-save-btn" onClick={save} disabled={saving}>
+          {saving ? 'در حال ذخیره...' : '💾 ذخیره اعلان'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+/* ── Promotions ── */
+function PromotionsTab({ qs, initData }) {
+  const [promos,  setPromos]  = useState([])
+  const [loading, setLoading] = useState(true)
+  const [modal,   setModal]   = useState(null)
+  const [form,    setForm]    = useState({ title: '', description: '', imageUrl: '', linkUrl: '', sortOrder: 0 })
+  const [saving,  setSaving]  = useState(false)
+  const [msg,     setMsg]     = useState(null)
+
+  const showMsg = (type, text) => { setMsg({ type, text }); setTimeout(() => setMsg(null), 4000) }
+
+  async function load() {
+    setLoading(true)
+    const r = await fetch(`/api/admin/promotions${qs}`)
+    if (r.ok) setPromos(await r.json())
+    setLoading(false)
+  }
+
+  useEffect(() => { load() }, [qs])
+
+  async function saveForm() {
+    if (!form.title || !form.linkUrl) return
+    setSaving(true)
+    const isEdit = modal?.mode === 'edit'
+    const url    = isEdit ? `/api/admin/promotions/${modal.item.id}${qs}` : `/api/admin/promotions${qs}`
+    const method = isEdit ? 'PUT' : 'POST'
+    const r = await fetch(url, {
+      method, headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...form, initData }),
+    })
+    if (r.ok) { setModal(null); await load(); showMsg('success', isEdit ? '✅ ویرایش شد' : '✅ اضافه شد') }
+    else showMsg('error', '❌ خطا')
+    setSaving(false)
+  }
+
+  async function toggleActive(p) {
+    await fetch(`/api/admin/promotions/${p.id}${qs}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isActive: !p.isActive, initData }),
+    })
+    setPromos(prev => prev.map(x => x.id === p.id ? { ...x, isActive: !x.isActive } : x))
+  }
+
+  async function remove(p) {
+    if (!confirm(`حذف «${p.title}»؟`)) return
+    await fetch(`/api/admin/promotions/${p.id}${qs}`, { method: 'DELETE' })
+    setPromos(prev => prev.filter(x => x.id !== p.id))
+    showMsg('success', '✅ حذف شد')
+  }
+
+  function openAdd() {
+    setForm({ title: '', description: '', imageUrl: '', linkUrl: '', sortOrder: 0 })
+    setModal({ mode: 'add' })
+  }
+
+  function openEdit(p) {
+    setForm({ title: p.title, description: p.description||'', imageUrl: p.imageUrl||'', linkUrl: p.linkUrl, sortOrder: p.sortOrder||0 })
+    setModal({ mode: 'edit', item: p })
+  }
+
+  return (
+    <div>
+      <div style={{ padding: '4px 16px 0' }}>
+        <button className="ap-save-btn" style={{ width: '100%', margin: 0 }} onClick={openAdd}>
+          + افزودن تبلیغ جدید
+        </button>
+      </div>
+
+      {msg && (
+        <div style={{
+          margin: '10px 16px 0', padding: '10px 14px', borderRadius: 10, fontSize: '.85rem', fontWeight: 700,
+          background: msg.type === 'success' ? 'rgba(78,199,96,.12)' : 'rgba(255,107,107,.1)',
+          color: msg.type === 'success' ? 'var(--green)' : 'var(--red)',
+        }}>{msg.text}</div>
+      )}
+
+      <p className="sec-title">تبلیغات فعال ({promos.length})</p>
+      {loading ? <div className="ap-empty">در حال بارگذاری...</div>
+        : promos.length === 0 ? <p className="ap-empty">هنوز تبلیغی اضافه نشده</p>
+        : promos.map(p => (
+          <div key={p.id} className="card" style={{
+            margin: '0 16px 10px', padding: 12, opacity: p.isActive ? 1 : 0.55,
+            display: 'flex', gap: 10, alignItems: 'center',
+          }}>
+            {p.imageUrl && (
+              <img src={p.imageUrl} alt={p.title} style={{
+                width: 56, height: 56, borderRadius: 8, objectFit: 'cover', flexShrink: 0,
+              }} onError={e => { e.target.style.display='none' }} />
+            )}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 700, fontSize: '.85rem', color: 'var(--t1)', marginBottom: 2 }}>{p.title}</div>
+              <div style={{ fontSize: '.7rem', color: 'var(--t3)', direction: 'ltr' }}>{p.linkUrl?.slice(0,40)}</div>
+              <div style={{ fontSize: '.68rem', marginTop: 4, color: 'var(--t3)' }}>
+                👁 {p.viewCount} بازدید · 👆 {p.clickCount} کلیک
+              </div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flexShrink: 0 }}>
+              <button className="qa-btn-sm" onClick={() => openEdit(p)}
+                style={{ background: 'rgba(61,139,255,.1)', border: '1px solid rgba(61,139,255,.25)', color: 'var(--blue)' }}>
+                ✏️ ویرایش
+              </button>
+              <button className="qa-btn-sm" onClick={() => toggleActive(p)}
+                style={{
+                  background: p.isActive ? 'rgba(248,81,73,.1)' : 'rgba(78,199,96,.1)',
+                  border: `1px solid ${p.isActive ? 'rgba(248,81,73,.2)' : 'rgba(78,199,96,.25)'}`,
+                  color: p.isActive ? 'var(--red)' : 'var(--green)',
+                }}>
+                {p.isActive ? '⏸' : '▶️'}
+              </button>
+              <button className="qa-btn-sm" onClick={() => remove(p)}
+                style={{ background: 'rgba(248,81,73,.1)', border: '1px solid rgba(248,81,73,.2)', color: 'var(--red)' }}>
+                🗑
+              </button>
+            </div>
+          </div>
+        ))
+      }
+
+      {modal && (
+        <div className="ap-modal-overlay" onClick={e => e.target === e.currentTarget && setModal(null)}>
+          <div className="ap-modal">
+            <div className="ap-modal-title">{modal.mode === 'add' ? '+ تبلیغ جدید' : '✏️ ویرایش تبلیغ'}</div>
+            <div className="ap-field">
+              <label>عنوان *</label>
+              <input value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))}
+                placeholder="مثال: کانال یوتیوب ما" dir="rtl" />
+            </div>
+            <div className="ap-field">
+              <label>توضیح مختصر</label>
+              <textarea rows={2} value={form.description}
+                onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
+                placeholder="چند خط معرفی..." dir="rtl" />
+            </div>
+            <div className="ap-field">
+              <label>لینک تصویر (URL)</label>
+              <input value={form.imageUrl} onChange={e => setForm(p => ({ ...p, imageUrl: e.target.value }))}
+                placeholder="https://example.com/image.jpg" dir="ltr" />
+            </div>
+            <div className="ap-field">
+              <label>لینک مقصد *</label>
+              <input value={form.linkUrl} onChange={e => setForm(p => ({ ...p, linkUrl: e.target.value }))}
+                placeholder="https://youtube.com/@channel" dir="ltr" />
+            </div>
+            <div className="ap-field">
+              <label>ترتیب نمایش (عدد کمتر = اول)</label>
+              <input type="number" value={form.sortOrder}
+                onChange={e => setForm(p => ({ ...p, sortOrder: Number(e.target.value) }))} dir="ltr" />
+            </div>
+            {form.imageUrl && (
+              <img src={form.imageUrl} alt="preview" style={{
+                width: '100%', height: 120, objectFit: 'cover', borderRadius: 8, marginBottom: 10,
+              }} onError={e => { e.target.style.display='none' }} />
+            )}
+            <div className="ap-modal-actions">
+              <button className="ap-btn-primary" onClick={saveForm} disabled={saving}>{saving ? 'ذخیره...' : 'ذخیره'}</button>
+              <button className="ap-btn-cancel" onClick={() => setModal(null)}>لغو</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

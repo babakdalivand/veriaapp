@@ -28,6 +28,7 @@ export default function App() {
   const { data: stats, loading: statsLoading } = useApi('/api/stats')
 
   const isAdmin = me?.role === 'admin' || me?.role === 'owner'
+  const qs = initData ? `?initData=${encodeURIComponent(initData)}` : '?initData=dev'
 
   // If user navigated to admin but lost admin role, redirect away
   useEffect(() => {
@@ -56,6 +57,8 @@ export default function App() {
         statsLoading={statsLoading}
         tgUser={tgUser}
         navigate={setPage}
+        qs={qs}
+        initData={initData}
       />
       <BottomNav current={page} onChange={setPage} isAdmin={isAdmin} />
     </>
