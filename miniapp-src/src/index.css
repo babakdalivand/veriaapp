@@ -1,32 +1,32 @@
-/* ── VeriaApp — Inspired by persianatheists.com ──────────── */
+/* ── VeriaApp — Light Theme ───────────────────────────────── */
 :root {
-  --bg:        #14110f;
-  --bg-page:   #1a1714;
-  --bg-card:   #252220;
-  --bg-card2:  #2e2a27;
-  --bg-input:  #201d1a;
+  --bg:        #f5f3f0;
+  --bg-page:   #edeae6;
+  --bg-card:   #ffffff;
+  --bg-card2:  #f9f7f5;
+  --bg-input:  #f0ede9;
   --orange:    #eb5e28;
-  --orange-dim: rgba(235,94,40,.18);
-  --orange-glow: 0 0 22px rgba(235,94,40,.32);
-  --blue:      #5aa0ff;
-  --blue-dim:  rgba(90,160,255,.20);
-  --blue-glow: 0 0 18px rgba(90,160,255,.25);
-  --gold:      #d4aa35;
-  --gold-dim:  rgba(212,170,53,.20);
-  --gold-glow: 0 0 22px rgba(212,170,53,.25);
-  --green:     #4ec760;
-  --red:       #ff6b6b;
-  --t1: #e8e2d9;
-  --t2: #ccc5b9;
+  --orange-dim: rgba(235,94,40,.10);
+  --orange-glow: 0 0 22px rgba(235,94,40,.20);
+  --blue:      #2d7aee;
+  --blue-dim:  rgba(45,122,238,.12);
+  --blue-glow: 0 0 18px rgba(45,122,238,.18);
+  --gold:      #b8860b;
+  --gold-dim:  rgba(184,134,11,.12);
+  --gold-glow: 0 0 22px rgba(184,134,11,.20);
+  --green:     #2d9e45;
+  --red:       #e03434;
+  --t1: #1a1614;
+  --t2: #4a4540;
   --t3: #8c857d;
-  --b1: rgba(255,255,255,.09);
-  --b2: rgba(255,255,255,.16);
-  --b-orange: rgba(235,94,40,.35);
-  --b-blue:   rgba(90,160,255,.30);
-  --b-gold:   rgba(212,170,53,.35);
+  --b1: rgba(0,0,0,.09);
+  --b2: rgba(0,0,0,.14);
+  --b-orange: rgba(235,94,40,.28);
+  --b-blue:   rgba(45,122,238,.25);
+  --b-gold:   rgba(184,134,11,.28);
   --r:  14px;
   --r2: 20px;
-  --shadow: 0 6px 28px rgba(0,0,0,.55);
+  --shadow: 0 4px 20px rgba(0,0,0,.10);
   --transition: 200ms cubic-bezier(.4,0,.2,1);
 }
 
@@ -116,11 +116,11 @@ body {
 }
 
 .btn-ghost {
-  background: rgba(255,255,255,.06);
+  background: rgba(0,0,0,.05);
   color: var(--t1);
   border: 1px solid var(--b1);
 }
-.btn-ghost:hover { background: rgba(255,255,255,.1); }
+.btn-ghost:hover { background: rgba(0,0,0,.09); }
 
 .btn-full { width: 100%; }
 
@@ -133,7 +133,7 @@ body {
   font-weight: 700;
   letter-spacing: .3px;
 }
-.badge-user    { background: rgba(255,255,255,.08); color: var(--t2); }
+.badge-user    { background: rgba(0,0,0,.07); color: var(--t2); }
 .badge-vip     { background: var(--gold-dim); border:1px solid var(--b-gold); color: var(--gold); }
 .badge-premium { background: linear-gradient(90deg,#c9a02a,#e2b93b); color:#0a0808; }
 .badge-admin   { background: var(--orange-dim); border:1px solid var(--b-orange); color: var(--orange); }
