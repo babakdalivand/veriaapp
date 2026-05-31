@@ -40,8 +40,9 @@ function getTodayQuote() {
 
 async function quoteHandler(ctx) {
   const q = getTodayQuote();
+  const divider = '━━━━━━━━━━━━━━━━━━━';
   await ctx.reply(
-    `💬 *نقل‌قول روز*\n\n_«${q.text}»_\n\n— *${q.author}*`,
+    `❝\n\n*${q.text}*\n\n${divider}\n✍️ _${q.author}_\n\n❞\n\n📖 @VeriaApp`,
     { parse_mode: 'Markdown' }
   );
 }

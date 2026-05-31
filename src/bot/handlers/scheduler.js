@@ -1,10 +1,29 @@
 const cron = require('node-cron');
-const { generateQuoteImage, THEME_KEYS } = require('./graphics');
 const Quote = require('../../database/models/Quote');
 const Settings = require('../../database/models/Settings');
 const schedulerState = require('../schedulerState');
 const { checkAllChannels } = require('./youtubeMonitor');
 const { checkWebsite }    = require('./websiteMonitor');
+
+const DECORATORS = [
+  { top: '❝', bottom: '❞' },
+  { top: '«', bottom: '»' },
+  { top: '✦', bottom: '✦' },
+  { top: '◈', bottom: '◈' },
+];
+
+function buildQuoteMessage(quote, idx) {
+  const deco = DECORATORS[idx % DECORATORS.length];
+  const divider = '━━━━━━━━━━━━━━━━━━━';
+  return (
+    `${deco.top}\n\n` +
+    `*${quote.text}*\n\n` +
+    `${divider}\n` +
+    `✍️ _${quote.author}_\n\n` +
+    `${deco.bottom}\n\n` +
+    `📖 @VeriaApp`
+  );
+}
 
 async function postDailyQuote(bot) {
   try {
@@ -18,11 +37,9 @@ async function postDailyQuote(bot) {
     });
     if (!quote) return console.log('[Scheduler] No active quotes');
 
-    const theme = THEME_KEYS[quote.usedCount % THEME_KEYS.length];
-    const imgBuffer = await generateQuoteImage({ text: quote.text, author: quote.author }, theme);
+    const text = buildQuoteMessage(quote, quote.usedCount);
 
-    await bot.telegram.sendPhoto(String(channelId), { source: imgBuffer }, {
-      caption: `💬 *نقل‌قول روز*\n\n_«${quote.text}»_\n\n— *${quote.author}*`,
+    await bot.telegram.sendMessage(String(channelId), text, {
       parse_mode: 'Markdown',
     });
 
