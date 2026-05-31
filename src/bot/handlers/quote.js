@@ -42,7 +42,7 @@ async function quoteHandler(ctx) {
   const q = getTodayQuote();
   const divider = '━━━━━━━━━━━━━━━━━━━';
   await ctx.reply(
-    `❝\n\n*${q.text}*\n\n${divider}\n✍️ _${q.author}_\n\n❞\n\n📖 @VeriaApp`,
+    `❝\n\n*${q.text}*\n\n${divider}\n✍️ _${q.author}_\n\n❞\n\n📖 @VforVeritas`,
     { parse_mode: 'Markdown' }
   );
 }

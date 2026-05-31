@@ -21,7 +21,7 @@ function buildQuoteMessage(quote, idx) {
     `${divider}\n` +
     `✍️ _${quote.author}_\n\n` +
     `${deco.bottom}\n\n` +
-    `📖 @VeriaApp`
+    `📖 @VforVeritas`
   );
 }
 
