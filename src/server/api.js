@@ -168,11 +168,64 @@ router.get('/twitter/profile', async (req, res) => {
   }
 });
 
-// GET /api/tweets — kept for backward compat but returns redirect info
+// GET /api/twitter/tweets?username=X  — try syndication API (no auth required)
+router.get('/twitter/tweets', async (req, res) => {
+  const { username } = req.query;
+  if (!username || username.length > 50) return res.status(400).json({ error: 'invalid' });
+  try {
+    const https = require('https');
+    const result = await new Promise((resolve, reject) => {
+      const options = {
+        hostname: 'syndication.twitter.com',
+        path: `/srv/timeline-profile/screen-name/${encodeURIComponent(username)}?lang=en`,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.9',
+        },
+        timeout: 10000,
+      };
+      const req2 = https.get(options, r => {
+        let body = '';
+        r.on('data', c => { body += c; });
+        r.on('end', () => resolve({ status: r.statusCode, body }));
+      });
+      req2.on('error', reject);
+      req2.on('timeout', () => { req2.destroy(); reject(new Error('timeout')); });
+    });
+    if (result.status !== 200) throw new Error(`HTTP ${result.status}`);
+    const m = result.body.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]+?)<\/script>/);
+    if (!m) throw new Error('no data');
+    const json = JSON.parse(m[1]);
+    const entries = json?.props?.pageProps?.timeline?.entries || [];
+    const tweets = entries
+      .filter(e => e.type === 'tweet')
+      .slice(0, 10)
+      .map(e => {
+        const t = e.content?.tweet;
+        if (!t) return null;
+        const text = (t.full_text || t.text || '').replace(/https?:\/\/t\.co\/\S+/g, '').trim();
+        return {
+          id: t.id_str,
+          text,
+          date: t.created_at ? new Date(t.created_at).toLocaleDateString('fa-IR') : '',
+          url: `https://x.com/${username}/status/${t.id_str}`,
+          likes: t.favorite_count || 0,
+          retweets: t.retweet_count || 0,
+        };
+      })
+      .filter(Boolean);
+    res.json({ tweets });
+  } catch (e) {
+    res.status(503).json({ error: 'unavailable' });
+  }
+});
+
+// GET /api/tweets — backward compat
 router.get('/tweets', async (req, res) => {
   const { username } = req.query;
   if (!username || username.length > 50) return res.status(400).json({ error: 'invalid username' });
-  res.status(503).json({ error: 'nitter_down', message: 'نمایش مستقیم توییت‌ها به دلیل محدودیت API توییتر/X غیرفعال است.' });
+  res.status(503).json({ error: 'nitter_down' });
 });
 
 // GET /api/quote  (public, today's quote)

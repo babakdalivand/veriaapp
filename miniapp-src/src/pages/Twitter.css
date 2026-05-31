@@ -27,6 +27,8 @@
 .tw-feed { display:flex; flex-direction:column; gap:10px; padding:0 16px; }
 .tw-card { display:flex; flex-direction:column; gap:7px; padding:15px 15px; text-decoration:none; cursor:pointer; transition:background 160ms; }
 .tw-card:active { background:var(--bg-card2); }
+.tw-tweet-card { display:block; padding:12px 14px; margin-top:8px; background:var(--bg-card2); border-radius:10px; border:1px solid var(--b1); }
+.tw-tweet-card:active { opacity:.8; }
 .tw-account { font-size:.7rem; color:#1d9bf0; font-weight:600; direction:ltr; text-align:right; }
 .tw-text { font-size:.83rem; color:#ccccee; line-height:1.6; }
 .tw-date { font-size:.68rem; color:#44445a; }

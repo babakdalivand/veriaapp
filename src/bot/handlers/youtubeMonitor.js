@@ -104,13 +104,25 @@ function buildPost(item, monitor) {
 // ── Post to Telegram ──────────────────────────────────────────────────────────
 
 async function postItem(bot, telegramChannelId, item, monitor) {
-  const { caption, buttons } = buildPost(item, monitor);
+  const { caption, thumbnail, buttons } = buildPost(item, monitor);
   const vidUrl = `https://www.youtube.com/watch?v=${item.id}`;
   const replyMarkup = { inline_keyboard: buttons };
+  const fullCaption = `${caption}\n\n${vidUrl}`;
+  const channelId = String(telegramChannelId);
 
-  // Send as text with link so Telegram shows a playable YouTube preview
-  const text = `${caption}\n\n${vidUrl}`;
-  await bot.telegram.sendMessage(String(telegramChannelId), text, {
+  if (thumbnail) {
+    try {
+      await bot.telegram.sendPhoto(channelId, thumbnail, {
+        caption: fullCaption,
+        parse_mode: 'Markdown',
+        reply_markup: replyMarkup,
+      });
+      return;
+    } catch (_) {}
+  }
+
+  // Fallback: text message with link preview
+  await bot.telegram.sendMessage(channelId, fullCaption, {
     parse_mode: 'Markdown',
     reply_markup: replyMarkup,
     disable_web_page_preview: false,
