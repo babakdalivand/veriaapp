@@ -7,6 +7,7 @@ const http = require('http');
 const { spawn } = require('child_process');
 
 const PYTHON_BIN = process.env.PYTHON_BIN || '/usr/bin/python3';
+const FFMPEG_BIN = process.env.FFMPEG_BIN || '';
 
 // youtubei.js evaluator is patched via postinstall script (scripts/patch-ytjs.mjs)
 const { Innertube } = require('youtubei.js');
@@ -157,6 +158,7 @@ function ytdlpAudio(videoId, dest) {
       '--max-filesize', `${MAX_SIZE_MB}M`,
       '-f', 'bestaudio[ext=m4a]/bestaudio/best',
       '-x', '--audio-format', 'mp3', '--audio-quality', '0',
+      ...(FFMPEG_BIN ? ['--ffmpeg-location', FFMPEG_BIN] : []),
       '-o', dest,
       '--no-warnings',
       '--print', 'after_move:filepath',
