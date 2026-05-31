@@ -2,17 +2,16 @@ import './BottomNav.css'
 
 const TABS = [
   { id: 'dashboard', icon: '⊞',  label: 'خانه'    },
-  { id: 'download',  icon: '⬇',  label: 'دانلود'  },
-  { id: 'youtube',   icon: '▶',  label: 'یوتیوب'  },
+  { id: 'twitter',   icon: '✦',  label: 'X / توییتر' },
   { id: 'quotes',    icon: '❝',  label: 'نقل‌قول' },
   { id: 'profile',   icon: '◉',  label: 'پروفایل' },
 ]
 
 const ADMIN_TAB  = { id: 'admin', icon: '🛠', label: 'ادمین' }
-const ADMIN_TABS = TABS.filter(t => t.id !== 'quotes')
+const ADMIN_TABS = [...TABS, ADMIN_TAB]
 
 export default function BottomNav({ current, onChange, isAdmin }) {
-  const tabs = isAdmin ? [...ADMIN_TABS, ADMIN_TAB] : TABS
+  const tabs = isAdmin ? ADMIN_TABS : TABS
 
   return (
     <nav className="bottom-nav">

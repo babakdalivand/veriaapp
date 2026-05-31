@@ -24,7 +24,6 @@ const { antiSpamMiddleware } = require('./handlers/moderation/antiSpam');
 const { antiLinkMiddleware } = require('./handlers/moderation/antiLink');
 const { keywordFilterMiddleware } = require('./handlers/moderation/keywordFilter');
 const { joinRequestHandler, captchaCallbackHandler } = require('./handlers/moderation/joinHandler');
-const { youtubeMenuHandler, handleYoutubeUrl, youtubeDownloadCallback, userState: ytUserState } = require('./handlers/youtube');
 const { newsHandler } = require('./handlers/news');
 const { quoteHandler } = require('./handlers/quote');
 const { twitterMenuHandler, twitterCallback, handleTwitterUsername, userState: twitterUserState } = require('./handlers/twitter');
@@ -32,9 +31,7 @@ const { aiMenuHandler, aiPickCallback, handleAiMessage, isWaitingAI } = require(
 const { premiumMenuHandler, premiumBuyCallback, preCheckoutHandler, successfulPaymentHandler } = require('./handlers/premium');
 const { broadcastMenuHandler, handleBroadcastMessage, isWaitingBroadcast } = require('./handlers/broadcast');
 const { referralHandler } = require('./handlers/referral');
-const { generateTweetImage, THEME_KEYS } = require('./handlers/graphics');
 const { isOwner, isAdmin } = require('./middleware/auth');
-const { handleMediaLink, downloadCallback, pendingDownloads, genId } = require('./handlers/downloader');
 const { handleVideoMessage, conversionCallback } = require('./handlers/converter');
 
 function createBot() {
@@ -58,7 +55,6 @@ function createBot() {
 
     if (!text) return next();
 
-    if (ytUserState.get(userId) === 'waiting_url') return handleYoutubeUrl(ctx);
     if (isWaitingAI(userId)) return handleAiMessage(ctx);
     if (twitterUserState.get(userId) === 'waiting_twitter') return handleTwitterUsername(ctx);
     if (isWaitingBroadcast(userId)) return handleBroadcastMessage(ctx);
@@ -82,9 +78,7 @@ function createBot() {
       `📖 *راهنمای دستورات VeriaApp*\n\n` +
       `🎬 *محتوا:*\n` +
       `/quote — نقل‌قول روز\n` +
-      `/youtube — دانلود یوتیوب\n` +
       `/ai — دستیار هوشمند\n` +
-      `/twitter — فید توییتر\n` +
       `/news — آخرین اخبار\n\n` +
       `👤 *حساب کاربری:*\n` +
       `/premium — خرید پریمیوم\n` +
@@ -100,7 +94,6 @@ function createBot() {
 
   // Shortcut commands
   bot.command('quote', quoteHandler);
-  bot.command('youtube', youtubeMenuHandler);
   bot.command('ai', aiMenuHandler);
   bot.command('news', newsHandler);
   bot.command('premium', premiumMenuHandler);
@@ -122,7 +115,6 @@ function createBot() {
   bot.hears('🛡️ مدیریت گروه', groupMenuHandler);
   bot.hears('🎬 مدیریت محتوا', contentMenuHandler);
   bot.hears('📱 Mini App', miniAppHandler);
-  bot.hears('📺 دانلود یوتیوب', youtubeMenuHandler);
   bot.hears('📰 آخرین اخبار', newsHandler);
   bot.hears('💬 نقل‌قول روز', quoteHandler);
   bot.hears('🤖 دستیار هوشمند', aiMenuHandler);
@@ -136,7 +128,6 @@ function createBot() {
     return ctx.reply(
       `ℹ️ *درباره VeriaApp*\n\n` +
       `VeriaApp یک اکوسیستم هوشمند رسانه‌ای است برای:\n` +
-      `• دانلود یوتیوب، تیک‌تاک، X و...\n` +
       `• نقل‌قول روزانه اندیشمندان آزاد\n` +
       `• دستیار هوشمند با AI\n` +
       `• آخرین اخبار ایران\n\n` +
@@ -144,10 +135,6 @@ function createBot() {
       { parse_mode: 'Markdown' }
     );
   });
-
-  // Auto-detect media links (TikTok, SoundCloud, Vimeo, Dailymotion, Pinterest, Twitter/X)
-  const MEDIA_URL_RE = /https?:\/\/(www\.)?(tiktok\.com|vm\.tiktok\.com|soundcloud\.com|vimeo\.com|dailymotion\.com|dai\.ly|pinterest\.com|pin\.it|twitter\.com|x\.com)[^\s]*/i;
-  bot.hears(MEDIA_URL_RE, handleMediaLink);
 
   // Custom slash commands from DB
   bot.use(async (ctx, next) => {
@@ -175,8 +162,6 @@ function createBot() {
   bot.command('setkeywords', setKeywordsCommand);
 
   // Inline keyboard callbacks
-  bot.action(/^dl:/, downloadCallback);
-  bot.action(/^yt:/, youtubeDownloadCallback);
   bot.action(/^ai:pick:/, aiPickCallback);
   bot.action(/^cfg:/, settingsCallback);
   bot.action(/^cnt:/, contentCallback);

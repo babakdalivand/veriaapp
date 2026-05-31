@@ -1,22 +1,18 @@
 import { useState, useEffect } from 'react'
 import { useTelegram, useApi } from './hooks.js'
 import Dashboard  from './pages/Dashboard.jsx'
-import YouTube    from './pages/YouTube.jsx'
 import Twitter    from './pages/Twitter.jsx'
 import Quotes     from './pages/Quotes.jsx'
 import Profile    from './pages/Profile.jsx'
 import AdminPanel from './pages/AdminPanel.jsx'
-import Download   from './pages/Download.jsx'
 import BottomNav  from './BottomNav.jsx'
 
 const PAGES = {
   dashboard: Dashboard,
-  youtube: YouTube,
   twitter: Twitter,
   quotes: Quotes,
   profile: Profile,
   admin: AdminPanel,
-  download: Download,
 }
 
 export default function App() {
@@ -30,7 +26,6 @@ export default function App() {
   const isAdmin = me?.role === 'admin' || me?.role === 'owner'
   const qs = initData ? `?initData=${encodeURIComponent(initData)}` : '?initData=dev'
 
-  // If user navigated to admin but lost admin role, redirect away
   useEffect(() => {
     if (page === 'admin' && !isAdmin && !meLoading) setPage('dashboard')
   }, [isAdmin, meLoading, page])
