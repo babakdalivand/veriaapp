@@ -1,18 +1,4 @@
 const sharp = require('sharp');
-const { FONT_REGULAR, FONT_BOLD } = require('./fonts_data');
-
-const FONT_FACE = `
-  @font-face {
-    font-family: 'Vazirmatn';
-    font-weight: 400;
-    src: url('data:font/ttf;base64,${FONT_REGULAR}') format('truetype');
-  }
-  @font-face {
-    font-family: 'Vazirmatn';
-    font-weight: 700;
-    src: url('data:font/ttf;base64,${FONT_BOLD}') format('truetype');
-  }
-`;
 
 const THEMES = {
   gold: {
@@ -90,7 +76,6 @@ function buildQuoteSVG(quote, theme) {
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="${h}">
   <defs>
-    <style>${FONT_FACE}</style>
     <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="${t.bg1}"/>
       <stop offset="100%" stop-color="${t.bg2}"/>
@@ -126,7 +111,6 @@ function buildTweetSVG(tweet, theme) {
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="${h}">
   <defs>
-    <style>${FONT_FACE}</style>
     <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="${t.bg1}"/>
       <stop offset="100%" stop-color="${t.bg2}"/>
