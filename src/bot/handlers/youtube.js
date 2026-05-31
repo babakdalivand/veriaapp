@@ -150,27 +150,10 @@ async function handleYoutubeUrl(ctx) {
   }
 }
 
-async function getWorkableAudio(info, player) {
-  const adaptive = info.streaming_data?.adaptive_formats || [];
-  const results = [];
-  for (const f of adaptive) {
-    const mime = f.mime_type || '';
-    if (!mime.startsWith('audio/')) continue;
-    try {
-      const url = await f.decipher(player);
-      if (url && typeof url === 'string' && url.startsWith('http')) {
-        results.push({ format: f, url, bitrate: f.average_bitrate || f.bitrate || 0 });
-      }
-    } catch (_) {}
-  }
-  results.sort((a, b) => b.bitrate - a.bitrate);
-  return results;
-}
-
 function convertToMp3(input, output) {
   return new Promise((resolve, reject) => {
     const bin = FFMPEG_BIN || 'ffmpeg';
-    const proc = spawn(bin, ['-i', input, '-q:a', '2', '-y', output], { timeout: 120000 });
+    const proc = spawn(bin, ['-i', input, '-vn', '-q:a', '2', '-y', output], { timeout: 180000 });
     let err = '';
     proc.stderr.on('data', d => { err += d; });
     proc.on('close', code => code === 0 ? resolve() : reject(new Error(`ffmpeg: ${err.slice(-200)}`)));
@@ -218,16 +201,17 @@ async function youtubeDownloadCallback(ctx) {
     const title = (info.basic_info.title || 'video').replace(/[^\w\s؀-ۿ]/g, '').trim().slice(0, 60);
 
     if (isAudio) {
-      const innertube2 = await getYT();
-      const audioFormats = await getWorkableAudio(info, innertube2.session.player);
-      if (audioFormats.length === 0) return ctx.editMessageText('❌ هیچ استریم صوتی پیدا نشد.');
+      // Use lowest-quality muxed format, strip video with ffmpeg
+      const workable = await getWorkableFormats(info, innertube.session.player);
+      if (!workable.length) return ctx.editMessageText('❌ هیچ فرمت قابل استخراج صدایی پیدا نشد. لطفاً ویدیوی دیگری امتحان کن.');
 
-      const best = audioFormats[0];
-      const rawFile = path.join(os.tmpdir(), `yt_raw_${ctx.from.id}_${Date.now()}.m4a`);
+      // Pick smallest (last after descending sort)
+      const source = workable[workable.length - 1];
+      const rawFile = path.join(os.tmpdir(), `yt_raw_${ctx.from.id}_${Date.now()}.mp4`);
       const mp3File = path.join(os.tmpdir(), `yt_audio_${ctx.from.id}_${Date.now()}.mp3`);
       tmpFile = mp3File;
 
-      await downloadUrl(best.url, rawFile);
+      await downloadUrl(source.url, rawFile);
       await convertToMp3(rawFile, mp3File);
       try { fs.unlinkSync(rawFile); } catch {}
 
