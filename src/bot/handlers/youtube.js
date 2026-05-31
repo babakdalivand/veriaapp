@@ -8,6 +8,7 @@ const { spawn } = require('child_process');
 
 const PYTHON_BIN = process.env.PYTHON_BIN || '/usr/bin/python3';
 const FFMPEG_BIN = process.env.FFMPEG_BIN || '';
+const YT_COOKIES_PATH = process.env.YT_COOKIES || '/home/u775839017/bin/yt_cookies.txt';
 
 // youtubei.js evaluator is patched via postinstall script (scripts/patch-ytjs.mjs)
 const { Innertube } = require('youtubei.js');
@@ -15,13 +16,27 @@ const { Innertube } = require('youtubei.js');
 const userState = new Map();
 const MAX_SIZE_MB = 45;
 
+function loadYTCookies() {
+  try {
+    return fs.readFileSync(YT_COOKIES_PATH, 'utf8')
+      .split('\n')
+      .filter(l => l && !l.startsWith('#'))
+      .map(l => { const p = l.split('\t'); return p.length >= 7 ? `${p[5]}=${p[6].trim()}` : null; })
+      .filter(Boolean)
+      .join('; ');
+  } catch { return ''; }
+}
+
 let ytInstance = null;
 async function getYT() {
   if (!ytInstance) {
-    ytInstance = await Innertube.create();
+    const cookie = loadYTCookies();
+    ytInstance = await Innertube.create(cookie ? { cookie } : {});
   }
   return ytInstance;
 }
+
+function resetYT() { ytInstance = null; }
 
 function formatDuration(seconds) {
   const m = Math.floor(seconds / 60);
@@ -57,8 +72,24 @@ async function getWorkableFormats(info, player) {
     } catch (_) {}
   }
 
-  // Sort by quality descending
   results.sort((a, b) => b.height - a.height);
+  return results;
+}
+
+// Returns best audio-only adaptive stream (requires authenticated session)
+async function getWorkableAudio(info, player) {
+  const adaptive = info.streaming_data?.adaptive_formats || [];
+  const results = [];
+  for (const f of adaptive) {
+    if (!(f.mime_type || '').startsWith('audio/')) continue;
+    try {
+      const url = await f.decipher(player);
+      if (url && url.startsWith('http')) {
+        results.push({ url, bitrate: f.average_bitrate || f.bitrate || 0, mime: f.mime_type });
+      }
+    } catch (_) {}
+  }
+  results.sort((a, b) => b.bitrate - a.bitrate);
   return results;
 }
 
@@ -201,19 +232,27 @@ async function youtubeDownloadCallback(ctx) {
     const title = (info.basic_info.title || 'video').replace(/[^\w\s؀-ۿ]/g, '').trim().slice(0, 60);
 
     if (isAudio) {
-      // Use lowest-quality muxed format, strip video with ffmpeg
-      const workable = await getWorkableFormats(info, innertube.session.player);
-      if (!workable.length) return ctx.editMessageText('❌ هیچ فرمت قابل استخراج صدایی پیدا نشد. لطفاً ویدیوی دیگری امتحان کن.');
-
-      // Pick smallest (last after descending sort)
-      const source = workable[workable.length - 1];
-      const rawFile = path.join(os.tmpdir(), `yt_raw_${ctx.from.id}_${Date.now()}.mp4`);
       const mp3File = path.join(os.tmpdir(), `yt_audio_${ctx.from.id}_${Date.now()}.mp3`);
       tmpFile = mp3File;
 
-      await downloadUrl(source.url, rawFile);
-      await convertToMp3(rawFile, mp3File);
-      try { fs.unlinkSync(rawFile); } catch {}
+      // Try 1: adaptive audio-only stream (works with authenticated session)
+      const audioFormats = await getWorkableAudio(info, innertube.session.player);
+
+      if (audioFormats.length > 0) {
+        const rawExt = audioFormats[0].mime.includes('mp4') ? 'm4a' : 'webm';
+        const rawFile = path.join(os.tmpdir(), `yt_raw_${ctx.from.id}_${Date.now()}.${rawExt}`);
+        await downloadUrl(audioFormats[0].url, rawFile);
+        await convertToMp3(rawFile, mp3File);
+        try { fs.unlinkSync(rawFile); } catch {}
+      } else {
+        // Fallback: lowest-quality muxed format + ffmpeg extract audio
+        const workable = await getWorkableFormats(info, innertube.session.player);
+        if (!workable.length) return ctx.editMessageText('❌ هیچ فرمت صوتی پیدا نشد. لطفاً ویدیوی دیگری امتحان کن.');
+        const rawFile = path.join(os.tmpdir(), `yt_raw_${ctx.from.id}_${Date.now()}.mp4`);
+        await downloadUrl(workable[workable.length - 1].url, rawFile);
+        await convertToMp3(rawFile, mp3File);
+        try { fs.unlinkSync(rawFile); } catch {}
+      }
 
       const stat = fs.statSync(mp3File);
       if (stat.size > MAX_SIZE_MB * 1024 * 1024) {
@@ -346,6 +385,7 @@ module.exports = {
   isYoutubeUrl,
   formatDuration,
   getYT,
+  resetYT,
   getYoutubeVideoInfo,
   downloadYoutubeToChannel,
 };
