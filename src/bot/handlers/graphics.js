@@ -83,8 +83,8 @@ function buildQuoteSVG(quote, theme) {
   </defs>
   <rect width="1080" height="${h}" fill="url(#bg)"/>
   ${cornerDeco(t.accent, h)}
-  <text x="540" y="400" text-anchor="middle" font-size="260" fill="${t.accent}" opacity="0.06" font-family="Georgia,serif">&#x275D;</text>
-  <text x="540" y="350" text-anchor="middle" font-size="90" fill="${t.accent}" opacity="0.55" font-family="Georgia,serif">&#x275D;</text>
+  <text x="540" y="400" text-anchor="middle" font-size="260" fill="${t.accent}" opacity="0.06" font-family="Georgia,serif">&#x201C;</text>
+  <text x="540" y="350" text-anchor="middle" font-size="90" fill="${t.accent}" opacity="0.55" font-family="Georgia,serif">&#x201C;</text>
   ${textRows}
   <rect x="390" y="${divY}" width="300" height="2" fill="${t.accent}" opacity="0.35" rx="1"/>
   <text x="540" y="${divY + 52}" text-anchor="middle" direction="rtl"
